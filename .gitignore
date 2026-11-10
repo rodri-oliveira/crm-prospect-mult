@@ -12,6 +12,9 @@ __pycache__/
 # Database / runtime files
 database.db
 *.db
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal
 
 # Exports / generated reports
 exports/
