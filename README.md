@@ -67,10 +67,10 @@ playwright install chromium
 ```
 
 ### 2. Configuração
-Crie um arquivo `.env` na raiz do projeto e adicione suas chaves (veja `.env.example` se disponível):
+Crie um arquivo `.env` **local, não versionado**, na raiz do projeto e adicione configurações de exemplo abaixo. O arquivo `.env.example` ainda não foi localizado nesta revisão:
 ```env
-FLASK_DEBUG=True
-GOOGLE_MAPS_API_KEY=sua_chave_aqui
+FLASK_DEBUG=False
+GOOGLE_MAPS_API_KEY=insira_somente_em_ambiente_local
 ```
 
 ### 3. Iniciar a Aplicação
@@ -81,10 +81,17 @@ Acesse: `http://localhost:5000`
 
 ---
 
+## Segurança e privacidade
+
+- **Nunca** publique `.env`, tokens, cookies de sessão, listas reais de prospects, dados pessoais ou resultados brutos de terceiros.
+- Valide as permissões e as condições de uso dos serviços externos antes de coletar ou armazenar dados de empresas e contatos.
+- Utilize dados sintéticos em demonstrações públicas e implemente controles adequados de acesso, registros de auditoria e políticas de retenção antes de qualquer uso real.
+- Documentação e descrição de arquitetura, por si só, não equivalem a auditoria de segurança nem a comprovação de implantação em produção.
+
 ## 👨‍💻 Autor
 
 Desenvolvido por **Rodrigo Oliveira**.
 Projeto focado em demonstrar competências em **Arquitetura de Software**, **Desenvolvimento Fullstack** e **Resolução de Problemas Complexos de Negócio**.
 
 ---
-*Este é um projeto profissional pronto para produção, com foco em performance e robustez.*
+**Situação de validação:** a prontidão para produção não foi comprovada nesta revisão documental. Antes de utilizar dados de clientes ou operar o sistema publicamente, é necessário validar autenticação, permissões, armazenamento de dados, integrações, testes, backups e observabilidade.
