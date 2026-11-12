@@ -1,6 +1,7 @@
 """Rotas web de Leads."""
 from __future__ import annotations
 
+from interfaces.web.shared.navigation import local_redirect
 from flask import Flask, redirect, render_template, request, url_for
 
 from application.leads.add_contato import AddLeadContatoRequest, add_lead_contato_with_repo
@@ -22,7 +23,7 @@ def leads_list():
 
 def leads_create():
     segmentos = [s.strip() for s in request.form.getlist("segmento") if (s or "").strip()]
-    result = create_lead_with_repo(
+    create_lead_with_repo(
         CreateLeadRequest(
             nome_loja=(request.form.get("nome_loja") or "").strip(),
             cidade=(request.form.get("cidade") or "").strip() or None,
@@ -44,7 +45,7 @@ def leads_create():
     )
     next_url = request.form.get("next_url")
     if next_url:
-        return redirect(next_url)
+        return redirect(local_redirect(next_url, url_for("leads_list")))
     return redirect(url_for("leads_list"))
 
 
@@ -53,12 +54,12 @@ def lead_detail(lead_id: int):
     if not result:
         return redirect(url_for("leads_list"))
     lead, contatos, segmentos = result
-    
+
     # Adicionar histórico de faturamento
     vendas_repo = pedido_repository()
     pedidos = vendas_repo.list_by_lead(lead_id)
     faturamento_total = vendas_repo.get_faturamento_total(lead_id)
-    
+
     return render_template(
         "lead_detalhe.html",
         lead=lead,
@@ -80,7 +81,7 @@ def lead_update_status(lead_id: int):
         )
         if novo_status == "Sem interesse":
             return redirect(url_for("prospeccao_view"))
-    return redirect(request.form.get("next", url_for("leads_list")))
+    return redirect(local_redirect(request.form.get("next"), url_for("leads_list")))
 
 
 def add_lead_contato(lead_id: int):
@@ -98,12 +99,12 @@ def add_lead_contato(lead_id: int):
 
     if not result.ok:
         return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
-    
+
     # Se o serviço sugeriu um redirecionamento específico (ex: voltar para a lista após descarte)
     if result.redirect_to:
         return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
-        
-    return redirect(request.form.get("next", url_for("leads_list")))
+
+    return redirect(local_redirect(request.form.get("next"), url_for("leads_list")))
 
 
 def lead_update_info(lead_id: int):
@@ -120,7 +121,7 @@ def lead_update_info(lead_id: int):
         'site': request.form.get('site'),
         'observacoes': request.form.get('observacoes')
     }
-    
+
     lead_repository().update(lead_id, data)
     return redirect(url_for('lead_detail', lead_id=lead_id))
 

@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between mb-8">
         <div>
             <h2 class="text-3xl font-black text-emerald-900 tracking-tight flex items-center gap-3">
-                <span class="text-4xl">🧾</span> 
+                <span class="text-4xl">🧾</span>
                 Registrar Faturamento
             </h2>
             <p class="text-emerald-700 text-sm mt-1">Lançamento de pedido para: <span class="font-bold underline">{{ lead.nome_loja }}</span></p>
@@ -15,6 +15,7 @@
     </div>
 
     <form action="/vendas/registrar" method="POST" id="form-venda" class="space-y-6 pb-20">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="lead_id" value="{{ lead.id }}">
 
         <!-- Dados do Cabeçalho -->
@@ -76,7 +77,7 @@
                         <span class="text-2xl font-black text-gray-900" id="total-geral">R$ 0,00</span>
                     </div>
                 </div>
-                
+
                 <!-- Automação de Pós Venda -->
                 <div class="bg-brand-50 border border-brand-100 p-4 rounded-xl flex items-center gap-4">
                     <div class="text-xl">📅</div>
@@ -113,13 +114,13 @@
     function adicionarLinha() {
         const body = document.getElementById('itens-body');
         const novaLinha = body.querySelector('.item-linha').cloneNode(true);
-        
+
         // Limpar inputs
         novaLinha.querySelectorAll('input').forEach(input => {
             if (input.type === 'number') input.value = input.name.includes('quant') ? '1' : '0.00';
             else input.value = '';
         });
-        
+
         novaLinha.querySelector('.total-linha').textContent = 'R$ 0,00';
         body.appendChild(novaLinha);
         novaLinha.querySelector('input[name="codigos[]"]').focus();
@@ -138,7 +139,7 @@
         const qtd = parseFloat(tr.querySelector('input[name="quantidades[]"]').value) || 0;
         const preco = parseFloat(tr.querySelector('input[name="precos_unt[]"]').value) || 0;
         const total = qtd * preco;
-        
+
         tr.querySelector('.total-linha').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         atualizarTotalGeral();
     }

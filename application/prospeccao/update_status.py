@@ -35,11 +35,19 @@ def update_prospecction_status_with_repo(
 ) -> UpdateProspecctionStatusResult:
     from services.cnpj_service import is_valid_cnpj, normalize_cnpj
 
-    novo_status = req.novo_status
+    from application.shared.workflow import canonical_status, validate_schedule
+    try:
+        novo_status = canonical_status(req.novo_status)
+        validate_schedule(req.data_retorno, req.hora_retorno, novo_status == 'Pediu para retornar')
+    except ValueError as error:
+        return UpdateProspecctionStatusResult(False, 'prospeccao_view', {'erro': str(error)})
     status_key = unicodedata.normalize("NFD", (novo_status or "").strip()).encode("ascii", "ignore").decode().casefold()
     observacao = req.observacao
     data_retorno = req.data_retorno
     hora_retorno = req.hora_retorno
+    from application.shared.workflow import TERMINAL
+    if novo_status in TERMINAL:
+        data_retorno = hora_retorno = None
 
     # 1. Validações prévias
     if novo_status == "Pediu para retornar" and not data_retorno:
@@ -62,13 +70,6 @@ def update_prospecction_status_with_repo(
                 ok=True,
                 redirect_to="prospeccao_view",
                 redirect_kwargs={},
-            )
-
-        if prospeccao.get("convertido_lead_id"):
-            return UpdateProspecctionStatusResult(
-                ok=True,
-                redirect_to="lead_detail",
-                redirect_kwargs={"lead_id": prospeccao["convertido_lead_id"]},
             )
 
         cnpj = normalize_cnpj((prospeccao.get("cnpj") or "").strip())

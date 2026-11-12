@@ -285,7 +285,7 @@
                         {% if item.hora_retorno %}
                         <p class="text-xs text-gray-600 mt-1">⏰ {{ item.hora_retorno }}</p>
                         {% endif %}
-                        
+
                         <!-- Status e Observação em Destaque -->
                         {% set display_status = item.status_tabulacao or 'Sem status de tabulação salvo' %}
                         {% set display_obs = item.observacao_tabulacao or item.observacao %}
@@ -299,7 +299,7 @@
                             </span>
                             {% endif %}
                         </div>
-                        
+
                         {% if item.tentativas_retorno %}
                         <p class="text-xs text-gray-500 mt-1">📌 Tentativas: {{ item.tentativas_retorno }}</p>
                         {% endif %}
@@ -314,6 +314,7 @@
                         <div class="mt-2 flex gap-1 justify-end">
                             <button type="button" class="px-2 py-1 text-xs rounded bg-brand-50 text-brand-700 hover:bg-brand-100" onclick="event.stopPropagation(); openRegistrarModal(this.closest('[data-prospeccao-id]'))">📝 Registrar tentativa</button>
                             <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline" onclick="event.stopPropagation();" onsubmit="return pedirDataRetorno(this)">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="status" value="Pediu para retornar">
                                 <input type="hidden" name="data_retorno" class="data-retorno-input">
                                 <input type="hidden" name="hora_retorno" class="hora-retorno-input">
@@ -321,6 +322,7 @@
                                 <button type="submit" class="px-2 py-1 text-xs rounded bg-yellow-50 text-yellow-700 hover:bg-yellow-100">🔄 Reagendar</button>
                             </form>
                             <form action="/prospeccao/rascunho/{{ item.id }}/converter" method="POST" class="inline" onclick="event.stopPropagation();">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" class="px-2 py-1 text-xs rounded bg-purple-50 text-purple-800 hover:bg-purple-100 font-medium">🎯 Converter</button>
                             </form>
                         </div>
@@ -394,7 +396,7 @@
                         {% if item.hora_retorno %}
                         <p class="text-xs text-gray-600 mt-1">⏰ {{ item.hora_retorno }}</p>
                         {% endif %}
-                        
+
                         <!-- Status e Observação em Destaque -->
                         {% set display_status = item.status_tabulacao or 'Sem status de tabulação salvo' %}
                         {% set display_obs = item.observacao_tabulacao or item.observacao %}
@@ -408,7 +410,7 @@
                             </span>
                             {% endif %}
                         </div>
-                        
+
                         {% if item.tentativas_retorno %}
                         <p class="text-xs text-gray-500 mt-1">📌 Tentativas: {{ item.tentativas_retorno }}</p>
                         {% endif %}
@@ -426,6 +428,7 @@
                         <div class="mt-2 flex gap-1 justify-end">
                             <button type="button" class="px-2 py-1 text-xs rounded bg-brand-50 text-brand-700 hover:bg-brand-100" onclick="event.stopPropagation(); openRegistrarModal(this.closest('[data-prospeccao-id]'))">📝 Registrar tentativa</button>
                             <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline" onclick="event.stopPropagation();" onsubmit="return pedirDataRetorno(this)">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="status" value="Pediu para retornar">
                                 <input type="hidden" name="data_retorno" class="data-retorno-input">
                                 <input type="hidden" name="hora_retorno" class="hora-retorno-input">
@@ -433,6 +436,7 @@
                                 <button type="submit" class="px-2 py-1 text-xs rounded bg-yellow-50 text-yellow-700 hover:bg-yellow-100">🔄 Reagendar</button>
                             </form>
                             <form action="/prospeccao/rascunho/{{ item.id }}/converter" method="POST" class="inline" onclick="event.stopPropagation();">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" class="px-2 py-1 text-xs rounded bg-purple-50 text-purple-800 hover:bg-purple-100 font-medium">🎯 Converter</button>
                             </form>
                         </div>
@@ -500,7 +504,7 @@
                         {% if item.hora_retorno %}
                         <p class="text-xs text-gray-600 mt-1">⏰ {{ item.hora_retorno }}</p>
                         {% endif %}
-                        
+
                         <!-- Status e Observação em Destaque -->
                         {% set display_status = item.status_tabulacao or 'Sem status de tabulação salvo' %}
                         {% set display_obs = item.observacao_tabulacao or item.observacao %}
@@ -522,9 +526,11 @@
                         <div class="mt-2 flex gap-1 justify-end">
                             <button type="button" class="px-2 py-1 text-xs rounded bg-brand-50 text-brand-700 hover:bg-brand-100" onclick="event.stopPropagation(); openRegistrarModal(this.closest('[data-prospeccao-id]'))">📝 Registrar</button>
                             <form action="/prospeccao/rascunho/{{ item.id }}/converter" method="POST" class="inline" onclick="event.stopPropagation();">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" class="px-2 py-1 text-xs rounded bg-purple-50 text-purple-800 hover:bg-purple-100 font-medium">🎯 Converter</button>
                             </form>
                             <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline" onclick="event.stopPropagation();" onsubmit="return pedirDataRetorno(this)">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <input type="hidden" name="status" value="Pediu para retornar">
                                 <input type="hidden" name="data_retorno" class="data-retorno-input">
                                 <input type="hidden" name="hora_retorno" class="hora-retorno-input">
@@ -555,145 +561,10 @@
 </div>
 
 <!-- Modal Registrar Tentativa -->
-<div id="registrarModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/40" onclick="closeRegistrarModal()"></div>
-    <div class="relative w-full max-w-xl bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col max-h-[90vh]">
-        <!-- Cabeçalho Fixo -->
-        <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-            <div>
-                <div class="text-[10px] uppercase font-bold text-gray-400">Registrar tentativa</div>
-                <div id="modalTitle" class="text-base font-bold text-gray-900 leading-tight">-</div>
-                <div class="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
-                    <div id="modalPhone" class="text-xs text-gray-600">-</div>
-                    <div id="modalWhatsapp" class="text-xs text-green-600 font-medium">-</div>
-                </div>
-                <div id="modalResponsavel" class="text-[10px] font-bold text-brand-600 uppercase">-</div>
-            </div>
-            <button type="button" class="text-gray-400 hover:text-gray-600 p-2" onclick="closeRegistrarModal()">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <form id="registrarForm" method="POST" class="flex flex-col min-h-0">
-            <!-- Conteúdo Scrolável -->
-            <div class="p-4 space-y-3 overflow-y-auto">
-                <input type="hidden" name="next" id="modalNext">
-
-                <!-- Dados de Contato Editáveis -->
-                <div class="bg-brand-50/50 p-3 rounded-lg border border-brand-100 mb-2">
-                    <div class="text-[10px] font-bold text-brand-400 uppercase mb-2">Dados de Contato (Atualize se necessário)</div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-medium text-gray-500 mb-0.5">Responsável</label>
-                            <input type="text" name="responsavel" id="modalInputResponsavel" class="block w-full rounded border-gray-300 text-xs p-1.5 focus:border-brand-500 focus:ring-brand-500 border bg-white" placeholder="Nome do responsável">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-medium text-gray-500 mb-0.5">E-mail</label>
-                            <input type="email" name="email" id="modalInputEmail" class="block w-full rounded border-gray-300 text-xs p-1.5 focus:border-brand-500 focus:ring-brand-500 border bg-white" placeholder="Email do contato">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-medium text-gray-500 mb-0.5">Telefone</label>
-                            <input type="text" name="telefone" id="modalInputPhone" class="block w-full rounded border-gray-300 text-xs p-1.5 focus:border-brand-500 focus:ring-brand-500 border bg-white" placeholder="(00) 0000-0000">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-medium text-gray-500 mb-0.5">WhatsApp</label>
-                            <input type="text" name="whatsapp" id="modalInputWhatsapp" class="block w-full rounded border-gray-300 text-xs p-1.5 focus:border-brand-500 focus:ring-brand-500 border bg-white" placeholder="(00) 00000-0000">
-                        </div>
-                    </div>
-                </div>
-
-                <div id="modalStatusAtualWrap" class="hidden">
-                    <label class="block text-[11px] uppercase font-bold text-gray-400 mb-1">Status da tabulação</label>
-                    <div id="modalStatusAtual" class="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-brand-50 text-brand-700 border border-brand-100"></div>
-                </div>
-
-                <div id="modalObsAtualWrap" class="hidden">
-                    <label class="block text-[11px] uppercase font-bold text-gray-400 mb-1">Observação atual</label>
-                    <div id="modalObsAtual" class="text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-md p-2"></div>
-                </div>
-
-                <div id="modalHistoricoWrap" class="hidden">
-                    <label class="block text-[11px] uppercase font-bold text-gray-400 mb-1">Histórico do contato</label>
-                    <div id="modalHistorico" class="space-y-2 text-[10px] text-gray-600 bg-gray-50 border border-gray-200 rounded-md p-2 max-h-32 overflow-y-auto"></div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Resultado *</label>
-                    <select name="resultado" id="modalResultado" required class="block w-full rounded-md border-gray-300 py-1.5 pl-3 pr-10 text-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500 border">
-                        <option value="">Selecione...</option>
-                        <option>Não atendeu</option>
-                        <option>Caixa postal</option>
-                        <option>Enviado Portfólio Whats</option>
-                        <option>Enviado Portfólio por E-mail</option>
-                        <option>Não analisou ainda o material</option>
-                        <option>Aguardando dados para cadastro</option>
-                        <option>Agendar retorno</option>
-                        <option>Solicitou portfólio</option>
-                        <option>Em negociação</option>
-                        <option>Interessado</option>
-                        <option>Aguard. Lista Prod.</option>
-                        <option>Já tem consultor atendendo</option>
-                        <option>Sem interesse</option>
-                        <option>Descartado</option>
-                    </select>
-                </div>
-
-                <div id="modalSegmentoWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Segmento *</label>
-                    <input type="text" name="segmento" id="modalSegmento" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 bg-gray-50 border" placeholder="Ex: Informática">
-                </div>
-
-                <div id="modalDataRetornoWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Data de retorno *</label>
-                    <input type="date" name="data_retorno" id="modalDataRetorno" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 bg-gray-50 border">
-                </div>
-
-                <div id="modalHoraRetornoWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Horário de retorno *</label>
-                    <input type="time" name="hora_retorno" id="modalHoraRetorno" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 bg-gray-50 border">
-                </div>
-
-                <div id="modalObsWrap">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Observação <span class="text-gray-400 font-normal text-xs">(edite ou adicione)</span></label>
-                    <textarea name="observacao" id="modalObs" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 bg-white border" placeholder="Adicione ou edite a observação..."></textarea>
-                </div>
-            </div>
-
-            <!-- Rodapé Fixo -->
-            <div class="px-4 py-3 border-t border-gray-100 flex gap-2 justify-end shrink-0 bg-gray-50">
-                <button type="button" class="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-100" onclick="closeRegistrarModal()">Cancelar</button>
-                <button type="submit" name="pos_acao" value="salvar" class="px-6 py-2 rounded-md bg-brand-600 text-white font-bold hover:bg-brand-700 shadow-sm active:scale-95 transition-all">Salvar</button>
-                <button id="btnSalvarConverter" type="submit" name="pos_acao" value="converter" class="hidden px-6 py-2 rounded-md bg-purple-600 text-white font-bold hover:bg-purple-700 shadow-sm active:scale-95 transition-all">Salvar e converter</button>
-            </div>
-        </form>
-    </div>
-</div>
+{% include 'agendamentos/register_modal.html' %}
 
 <!-- Modal de Agendamento -->
-<div id="modalRetorno" class="fixed inset-0 z-[60] hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-black/30"></div>
-    <div class="relative z-10 flex items-center justify-center min-h-full p-4">
-        <div class="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div class="px-5 py-3 bg-brand-50 border-b border-gray-200">
-                <h3 class="text-base font-semibold text-brand-800">Agendar retorno</h3>
-            </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700">Data *</label>
-                    <input type="date" id="retornoData" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700">Horário *</label>
-                    <input type="time" id="retornoHora" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" id="retornoCancelar" class="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">Cancelar</button>
-                    <button type="button" id="retornoSalvar" class="px-4 py-2 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-sm font-medium">Salvar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'agendamentos/return_modal.html' %}
 
 <script type="module" src="{{ url_for('static', filename='js/modules/agendamentos.js') }}?v=fix-modal-listener-1"></script>
 {% endblock %}

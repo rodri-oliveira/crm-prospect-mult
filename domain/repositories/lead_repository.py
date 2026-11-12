@@ -47,3 +47,6 @@ class LeadRepository(Protocol):
     def devolver_para_prospeccao(self, lead_id: int) -> bool:
         """Devolve lead para prospecção: desarquiva prospecção original e atualiza status."""
         raise NotImplementedError
+
+    def has_sales(self, lead_id: int) -> bool:
+        raise NotImplementedError

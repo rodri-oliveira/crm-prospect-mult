@@ -4,6 +4,7 @@
  */
 
 export const SEGMENTOS = [
+    'Acessórios de informática',
     'Informática', 'Informática (Médio Porte)', 'Varejistas de Médio Porte', 'Celulares', 'Tablets Kids', 'Áudio e Vídeo', 'Eletroportáteis', 'Gamer',
     'Brinquedos', 'Drones e Câmeras', 'Sennheiser', 'Ortopédica',
     'Fitness', 'Pet', 'Redes', 'Mobilidade Elétrica',
@@ -17,7 +18,7 @@ export function segmentoSelector() {
     return {
         open: false,
         segmentos: SEGMENTOS,
-        selecionados: [],
+        selecionados: ['Acessórios de informática'],
         toggle(seg) {
             if (this.selecionados.includes(seg)) {
                 this.selecionados = this.selecionados.filter(s => s !== seg);
@@ -64,9 +65,9 @@ export function cidadeAutocomplete() {
         },
         async ensureLoaded() {
             // Sempre carrega ao focar
-            const uf = (document.getElementById('mapEstado')?.value || 'SP').toUpperCase();
+            const uf = (document.getElementById('mapEstado')?.value || '').toUpperCase();
             if (!uf) return;
-            
+
             this.loading = true;
             try {
                 this.cidades = await loadCidadesArray(uf);
@@ -91,8 +92,8 @@ export function cidadeAutocomplete() {
         },
         moveUp() {
             if (this.filteredCidades.length === 0) return;
-            this.highlightedIndex = this.highlightedIndex <= 0 
-                ? this.filteredCidades.length - 1 
+            this.highlightedIndex = this.highlightedIndex <= 0
+                ? this.filteredCidades.length - 1
                 : this.highlightedIndex - 1;
         },
         selectHighlighted() {

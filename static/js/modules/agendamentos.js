@@ -1,3 +1,4 @@
+import { escapeHtml, safeHttpUrl } from './dom-safety.js';
 /**
  * Módulo da página de Agendamentos
  */
@@ -82,46 +83,46 @@ function renderHistoricoItens(itens) {
         const line = document.createElement('div');
         line.className = 'text-xs text-gray-700 leading-relaxed';
         const when = formatEventoDate(ev.data_evento);
-        
+
         let detalhe = ev.detalhe ? String(ev.detalhe) : '';
         const tipo = ev.tipo_evento ? String(ev.tipo_evento) : '';
-        
+
         if (tipo === 'STATUS_CHANGE' || tipo === 'RETORNO_TENTATIVA' || tipo === 'RETORNO_RESULTADO') {
             let status = detalhe;
             let obs = '';
-            
+
             if (detalhe.includes(' | ')) {
                 const parts = detalhe.split(' | ');
                 status = parts[0].trim();
                 obs = parts.slice(1).join(' | ').trim();
             }
-            
-            let label = tipo === 'RETORNO_TENTATIVA' ? 'Tentativa:' : 
+
+            let label = tipo === 'RETORNO_TENTATIVA' ? 'Tentativa:' :
                         tipo === 'RETORNO_RESULTADO' ? 'Resultado:' : 'Status:';
 
-            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${when}</div>` +
+            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${escapeHtml(when)}</div>` +
                             `<div class="flex flex-col gap-1 mt-1">` +
                                 `<div class="flex items-center gap-1">` +
-                                    `<span class="text-[9px] font-bold text-gray-400 uppercase">${label}</span>` +
-                                    `<span class="inline-block px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 font-bold text-[10px] w-fit uppercase border border-brand-100">${status}</span>` +
+                                    `<span class="text-[9px] font-bold text-gray-400 uppercase">${escapeHtml(label)}</span>` +
+                                    `<span class="inline-block px-1.5 py-0.5 rounded bg-brand-50 text-brand-700 font-bold text-[10px] w-fit uppercase border border-brand-100">${escapeHtml(status)}</span>` +
                                 `</div>` +
-                                (obs ? `<span class="text-gray-700 font-medium bg-white p-1 rounded border border-gray-50">${obs}</span>` : '') +
+                                (obs ? `<span class="text-gray-700 font-medium bg-white p-1 rounded border border-gray-50">${escapeHtml(obs)}</span>` : '') +
                             `</div>`;
         } else if (tipo === 'OBSERVACAO_CHANGE') {
-            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${when}</div>` +
+            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${escapeHtml(when)}</div>` +
                             `<div class="mt-1 flex flex-col gap-1">` +
                                 `<span class="text-[9px] font-bold text-gray-400 uppercase">Edição de Observação:</span>` +
-                                `<span class="text-gray-600 italic bg-gray-50 p-1 rounded border border-gray-100">${detalhe}</span>` +
+                                `<span class="text-gray-600 italic bg-gray-50 p-1 rounded border border-gray-100">${escapeHtml(detalhe)}</span>` +
                             `</div>`;
         } else {
             const tipoAmigavel = tipo.replace(/_/g, ' ');
-            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${when}</div>` +
+            line.innerHTML = `<div class="font-bold text-gray-900 text-[11px]">${escapeHtml(when)}</div>` +
                             `<div class="mt-1">` +
-                                `<span class="text-[9px] font-bold text-gray-400 uppercase mr-1">${tipoAmigavel}:</span>` +
-                                `<span class="text-gray-600">${detalhe}</span>` +
+                                `<span class="text-[9px] font-bold text-gray-400 uppercase mr-1">${escapeHtml(tipoAmigavel)}:</span>` +
+                                `<span class="text-gray-600">${escapeHtml(detalhe)}</span>` +
                             `</div>`;
         }
-        
+
         row.appendChild(line);
 
         if (ev.data_retorno_antes || ev.data_retorno_depois) {
@@ -180,7 +181,7 @@ function openRegistrarModalLead(btnEl) {
     if (!btnEl) return;
     const modal = document.getElementById('registrarModal');
     const form = document.getElementById('registrarForm');
-    
+
     const id = btnEl.getAttribute('data-lead-id');
     const nome = btnEl.getAttribute('data-nome-loja') || '-';
     const tel = btnEl.getAttribute('data-telefone') || '';
@@ -193,16 +194,16 @@ function openRegistrarModalLead(btnEl) {
     const titleEl = document.getElementById('modalTitle');
     if (titleEl) {
         if (mapsUrl) {
-            titleEl.innerHTML = `${nome} <a href="${mapsUrl}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">📍</a>`;
+            titleEl.innerHTML = `${escapeHtml(nome)} <a href="${escapeHtml(safeHttpUrl(mapsUrl))}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">📍</a>`;
         } else {
             titleEl.textContent = nome;
         }
     }
-    
+
     document.getElementById('modalPhone').textContent = tel ? `📞 ${tel}` : '📞 Sem telefone';
     const waEl = document.getElementById('modalWhatsapp');
     if (waEl) waEl.textContent = wa ? `WhatsApp: ${wa}` : 'WhatsApp: Sem WhatsApp';
-    
+
     const respEl = document.getElementById('modalResponsavel');
     if (respEl) {
         respEl.textContent = resp ? `👤 ${resp}` : '👤 Responsável Não Informado';
@@ -266,7 +267,7 @@ function openRegistrarModal(cardEl) {
     const titleEl = document.getElementById('modalTitle');
     if (titleEl) {
         if (mapsUrl) {
-            titleEl.innerHTML = `${nome} <a href="${mapsUrl}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">📍</a>`;
+            titleEl.innerHTML = `${escapeHtml(nome)} <a href="${escapeHtml(safeHttpUrl(mapsUrl))}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">📍</a>`;
         } else {
             titleEl.textContent = nome;
         }
@@ -274,7 +275,7 @@ function openRegistrarModal(cardEl) {
     document.getElementById('modalPhone').textContent = tel ? `📞 ${tel}` : '📞 Sem telefone';
     const waEl = document.getElementById('modalWhatsapp');
     if (waEl) waEl.textContent = wa ? `WhatsApp: ${wa}` : 'WhatsApp: Sem WhatsApp';
-    
+
     const respEl = document.getElementById('modalResponsavel');
     if (respEl) {
         respEl.textContent = resp ? `👤 ${resp}` : '👤 Responsável Não Informado';

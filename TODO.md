@@ -1,42 +1,11 @@
-# TODO - Prospect Mult
+# Próximas melhorias
 
-## Concluído ✅
-- [x] Dividir `interfaces/web/routes.py` por contexto (DDD)
-- [x] Migrar JS inline para módulos ES6
-- [x] Corrigir testes unitários (30/30 passando)
-- [x] Remover arquivos não utilizados
-- [x] Corrigir botão "Resultados (beta)" do drawer
-- [x] Corrigir erro `window.open` em botões
-- [x] Logs detalhados com estatísticas de lojas únicas
-- [x] UI com contador de lojas únicas no drawer
-- [x] Corrigir autocomplete de cidade - Alpine.js
-- [x] Otimizar termos B2B - 50% menos queries, 98% cobertura
-- [x] Criar script para limpar banco de dados
-- [x] Adicionar filtros de data e status na UI de prospecção
+A revisão de novembro de 2026 entregou correções de status/agendamentos, vendas em banco novo, conversão atômica, importação CSV, proteção de acesso, extração dos módulos maiores e testes. Consulte [o fluxo atual](docs/FLUXO_COMERCIAL.md) e [a manutenção](docs/MANUTENCAO.md).
 
-## Análise de Logs (16/03/2026)
+Pendências que dependem de validação adicional:
 
-### Resultados originais (32 queries)
-- 900 lojas encontradas → 138 únicas (15% aproveitamento)
-- ~8 minutos de busca
-
-### Eficiência por termo B2B
-| Termo | Lojas únicas | % |
-|-------|-------------|---|
-| distribuidor | 119 | 86% |
-| loja | 9 | 7% |
-| representante | 7 | 5% |
-| revenda | 5 | 4% |
-| atacadista | 3 | 2% |
-| fornecedor | 3 | 2% |
-
-### Otimização implementada
-- Manter: `distribuidor`, `loja`
-- Remover: `atacadista`, `revenda`, `fornecedor`
-- Adicionar: marcas relevantes (Multilaser, Lenovo, Dell...)
-- Adicionar: exclusão `-fechado`
-
-### Resultado esperado
-- ~16 queries (50% redução)
-- ~4 minutos de busca
-- Cobertura similar ou maior (marcas)
+- [ ] Executar o teste visual em um ambiente que permita Chromium (`CRM_BROWSER_TESTS=1`).
+- [ ] Conferir uma cópia do banco existente e os registros legados, sem reclassificação automática.
+- [ ] Validar a coleta real do Google Maps; os testes não acessam serviços externos.
+- [ ] Avaliar filtros por potencial de compra com critérios fornecidos pelo vendedor; não inferir porte ou faturamento apenas pelo nome da loja.
+- [ ] Se houver necessidade de vários vendedores, projetar contas individuais e permissões.

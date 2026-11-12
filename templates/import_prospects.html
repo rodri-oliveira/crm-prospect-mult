@@ -1,0 +1,35 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="space-y-5 max-w-6xl mx-auto">
+  <h2 class="text-2xl font-bold">Importar prospects — acessórios de informática</h2>
+  <p>SP, RJ, MG e ES. Use listas próprias e fontes comerciais públicas. Revise a atividade da loja e o contato antes de abordar.</p>
+  <p>O arquivo é conferido antes da gravação. Duplicados por CNPJ ou nome + cidade + UF são ignorados, inclusive leads e contatos arquivados.</p>
+  {% if error %}<p role="alert" class="p-3 bg-red-50 text-red-800">{{ error }}</p>{% endif %}
+  {% if result %}<p role="status" class="p-3 bg-green-50 text-green-800">{{ result.added }} contatos importados. {{ result.duplicates }} duplicados ignorados.</p>{% endif %}
+  <div class="flex gap-4"><a class="text-blue-700 underline" href="{{ url_for('import_model') }}">Baixar modelo CSV</a><a class="text-blue-700 underline" href="/prospeccao">Voltar à prospecção</a></div>
+  <form method="post" enctype="multipart/form-data" class="bg-white p-4 rounded border space-y-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="file" name="file" accept=".csv,text/csv" required aria-label="Arquivo CSV">
+    <p class="text-sm">Até 1 MB e 500 contatos. Colunas obrigatórias: nome_loja, cidade, estado. Inclua telefone com DDD, WhatsApp, e-mail ou site. UTF-8 ou CSV do Excel.</p>
+    <button class="bg-blue-700 text-white px-4 py-2 rounded">Conferir arquivo</button>
+  </form>
+  {% if rows %}
+  <form method="post" class="space-y-3">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="action" value="confirm">
+    <input type="hidden" name="preview_token" value="{{ preview_token }}">
+    <p>Selecione os contatos que deseja importar. A prioridade indica dados disponíveis e indícios de atividade; não comprova intenção de compra nem WhatsApp ativo.</p>
+    <div class="overflow-x-auto bg-white border rounded"><table class="w-full text-sm text-left">
+      <thead><tr><th class="p-2">Importar</th><th>Loja</th><th>Cidade / UF</th><th>Contato</th><th>Revisão</th></tr></thead>
+      <tbody>{% for row in rows %}<tr class="border-t">
+        <td class="p-2"><input aria-label="Selecionar linha {{ row.line }}" type="checkbox" name="selected" value="{{ loop.index0 }}" {% if row.errors %}disabled{% elif row.quality.accessories_fit %}checked{% endif %}></td>
+        <td>{{ row.data.nome_loja }}</td><td>{{ row.data.cidade }} / {{ row.data.estado }}</td>
+        <td>{{ row.data.telefone or row.data.whatsapp or row.data.email or row.data.site }}</td>
+        <td class="p-2">{% if row.errors %}<span class="text-red-700">{{ row.errors|join('; ') }}</span>{% else %}{{ row.quality.quality_priority }}: {{ row.quality.quality_notes|join('; ') }}{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    <button class="bg-green-700 text-white px-4 py-2 rounded">Importar selecionados</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

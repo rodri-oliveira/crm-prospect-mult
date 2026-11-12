@@ -36,6 +36,15 @@ def create_lead(req: CreateLeadRequest) -> CreateLeadResponse:
 
 
 def create_lead_with_repo(req: CreateLeadRequest, repo: LeadRepository) -> CreateLeadResponse:
+    from application.shared.workflow import canonical_status
+    from application.shared.cnpj_utils import is_valid_cnpj
+    status = canonical_status(req.status)
+    if not req.nome_loja.strip():
+        raise ValueError('Informe o nome da loja.')
+    if req.cnpj and not is_valid_cnpj(req.cnpj):
+        raise ValueError('CNPJ inválido.')
+    if status == 'Cliente ativo':
+        raise ValueError('Cadastre o lead e registre uma venda para ativar o cliente.')
     data = {
         "nome_loja": req.nome_loja,
         "cidade": req.cidade,
@@ -51,7 +60,7 @@ def create_lead_with_repo(req: CreateLeadRequest, repo: LeadRepository) -> Creat
         "observacoes": req.observacoes,
         "maps_place_id": req.maps_place_id,
         "maps_url": req.maps_url,
-        "status": req.status,
+        "status": status,
     }
     lead_id = repo.create(data)
     return CreateLeadResponse(lead_id=lead_id)

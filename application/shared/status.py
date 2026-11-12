@@ -9,6 +9,8 @@ STATUS_PROSPECCAO = [
     "Não atendeu",
     "Caixa postal",
     "Enviado Portfólio Whats",
+    "Enviado Portfólio por E-mail",
+    "Aguard. Lista Prod.",
     "Não analisou ainda o material",
     "Pediu para retornar",  # Exibido como "Agendamento" na UI
     "Solicitou portfólio",
@@ -17,6 +19,8 @@ STATUS_PROSPECCAO = [
     "Já tem consultor atendendo",
     "Sem interesse",
     "Descartado",
+    "Aguardando dados para cadastro",
+    "Pediu preço",
     "Convertido em Lead",
 ]
 
@@ -25,6 +29,8 @@ STATUS_LEADS = [
     "Novo Lead",
     "Sem contato",
     "Enviado Portfólio Whats",
+    "Enviado Portfólio por E-mail",
+    "Aguard. Lista Prod.",
     "Não analisou ainda o material",
     "Envio de documentação",
     "Em análise de documentação",
@@ -47,6 +53,8 @@ RESULTADOS_INTERACAO = [
     "Caixa postal",
     "Sem contato",
     "Enviado Portfólio Whats",
+    "Enviado Portfólio por E-mail",
+    "Aguard. Lista Prod.",
     "Não analisou ainda o material",
     "Envio de documentação",
     "Em análise de documentação",

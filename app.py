@@ -1,5 +1,7 @@
 import os
 import logging
+import secrets
+from werkzeug.exceptions import HTTPException
 from datetime import date
 from database import init_db
 from flask import Flask, jsonify, render_template, request
@@ -16,6 +18,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+app.config.update(
+    SECRET_KEY=os.environ.get('CRM_SECRET_KEY') or secrets.token_hex(32),
+    CRM_USERNAME=os.environ.get('CRM_USERNAME'),
+    CRM_PASSWORD=os.environ.get('CRM_PASSWORD'),
+    MAX_CONTENT_LENGTH=3 * 1024 * 1024,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=os.environ.get('CRM_COOKIE_SECURE', '').lower() == 'true',
+)
+from interfaces.web.security import register_security
+register_security(app)
 
 # Context processor para disponibilizar dados globais em todos os templates
 @app.context_processor
@@ -38,6 +51,7 @@ def inject_globals():
 
 # ==================== ERROR Handlers ====================
 
+@app.errorhandler(ValueError)
 @app.errorhandler(400)
 def bad_request(error):
     """Handler para erros 400 - Bad Request."""
@@ -48,9 +62,9 @@ def bad_request(error):
             'message': 'Requisição inválida',
             'error': str(error)
         }), 400
-    return render_template('error.html', 
-        code=400, 
-        message='Requisição inválida',
+    return render_template('error.html',
+        code=400,
+        message=getattr(error, 'description', str(error)),
         active_page='error'
     ), 400
 
@@ -90,15 +104,19 @@ def internal_error(error):
 @app.errorhandler(Exception)
 def handle_exception(error):
     """Handler global para exceções não tratadas."""
+    if isinstance(error, HTTPException):
+        if request.path.startswith('/api/'):
+            return jsonify(ok=False, message=error.description), error.code
+        return render_template('error.html', code=error.code, message=error.description, active_page='error'), error.code
     logger.error(f"Unhandled Exception: {error}", exc_info=True)
-    
+
     if request.path.startswith('/api/'):
         return jsonify({
             'ok': False,
             'message': 'Erro inesperado',
             'error': str(error) if app.debug else 'Erro interno'
         }), 500
-    
+
     return render_template('error.html',
         code=500,
         message='Erro inesperado',
@@ -113,4 +131,4 @@ register_web_routes(app)
 register_api_routes(app)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(host=os.environ.get('CRM_HOST', '127.0.0.1'), debug=os.environ.get('FLASK_DEBUG', '').lower() == 'true', port=int(os.environ.get('PORT', '5000')))

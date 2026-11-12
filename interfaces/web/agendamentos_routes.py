@@ -2,6 +2,7 @@
 from __future__ import annotations
 from datetime import date
 
+from interfaces.web.shared.navigation import local_redirect
 from flask import Flask, redirect, render_template, request, url_for
 
 from application.agendamentos.list_view import ListAgendamentosRequest, list_agendamentos_with_repo
@@ -56,7 +57,7 @@ def agendamento_nao_atendeu(prospeccao_id: int):
         ),
         agendamentos_repository(),
     )
-    return redirect(request.form.get("next", url_for("agendamentos_view")))
+    return redirect(local_redirect(request.form.get("next"), url_for("agendamentos_view")))
 
 
 def agendamento_registrar_tentativa(prospeccao_id: int):
@@ -81,22 +82,20 @@ def agendamento_registrar_tentativa(prospeccao_id: int):
         prospeccao_repository(),
     )
 
-    if not result.ok:
-        return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
-    return redirect(request.form.get("next", url_for("agendamentos_view")))
+    return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
 
 
 def agendamento_registrar_lead(lead_id: int):
     from application.leads.add_contato import AddLeadContatoRequest, add_lead_contato_with_repo
     from infrastructure.container import lead_repository
-    
+
     # Atualizar dados básicos do lead se fornecidos
     l_repo = lead_repository()
     responsavel = (request.form.get("responsavel") or "").strip() or None
     email = (request.form.get("email") or "").strip() or None
     telefone = (request.form.get("telefone") or "").strip() or None
     whatsapp = (request.form.get("whatsapp") or "").strip() or None
-    
+
     if any([responsavel, email, telefone, whatsapp]):
         l_repo.update_basic_info(
             lead_id=lead_id,
@@ -105,8 +104,8 @@ def agendamento_registrar_lead(lead_id: int):
             telefone=telefone,
             whatsapp=whatsapp
         )
-    
-    add_lead_contato_with_repo(
+
+    result = add_lead_contato_with_repo(
         AddLeadContatoRequest(
             lead_id=lead_id,
             tipo_contato="Ligação", # Padrão para agendamentos
@@ -117,7 +116,9 @@ def agendamento_registrar_lead(lead_id: int):
         ),
         l_repo,
     )
-    return redirect(request.form.get("next", url_for("agendamentos_view")))
+    if not result.ok:
+        return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
+    return redirect(local_redirect(request.form.get("next"), url_for("agendamentos_view")))
 
 
 def register_agendamentos_routes(app: Flask) -> None:

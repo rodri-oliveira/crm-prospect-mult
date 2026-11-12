@@ -27,7 +27,7 @@ class FakeConnection:
 
 def test_listagem_padrao_exclui_sem_interesse(monkeypatch):
     conn = FakeConnection()
-    monkeypatch.setattr(lead_repo_module.sqlite3, "connect", lambda _: conn)
+    monkeypatch.setattr(lead_repo_module, "get_db_connection", lambda _: conn)
 
     repo = SqliteLeadRepository()
     repo.list_by_status()
@@ -39,7 +39,7 @@ def test_listagem_padrao_exclui_sem_interesse(monkeypatch):
 
 def test_filtro_explicito_por_status_permanece_disponivel(monkeypatch):
     conn = FakeConnection()
-    monkeypatch.setattr(lead_repo_module.sqlite3, "connect", lambda _: conn)
+    monkeypatch.setattr(lead_repo_module, "get_db_connection", lambda _: conn)
 
     repo = SqliteLeadRepository()
     repo.list_by_status("Sem interesse")

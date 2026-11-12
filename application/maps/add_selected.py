@@ -63,6 +63,8 @@ def add_maps_items_with_repo(
             "segmento": segmento_str,
             "maps_place_id": maps_key,
             "maps_url": (it.get("maps_url") or "").strip(),
+            "site": (it.get("website") or it.get("site") or "").strip(),
+            "observacao": 'Fonte: Google Maps. Atividade e contato aguardam conferência.',
         }
 
         if not dados["nome_loja"]:

@@ -3,14 +3,14 @@ from __future__ import annotations
 import sqlite3
 from datetime import date
 
-from database import DB_PATH
+from database import DB_PATH, get_db_connection
 from domain.repositories.relatorio_repository import RelatorioRepository
 
 
 class SqliteRelatorioRepository(RelatorioRepository):
     def get_resumo_hoje(self) -> dict:
         hoje = date.today().isoformat()
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -21,7 +21,7 @@ class SqliteRelatorioRepository(RelatorioRepository):
         whatsapp = c.fetchone()["qtd"]
 
         c.execute(
-            "SELECT COUNT(*) as qtd FROM contatos WHERE date(data) = ? AND resultado NOT IN ('Sem contato', 'Não atendeu', 'Caixa postal')",
+            "SELECT COUNT(*) as qtd FROM contatos WHERE date(data) = ? AND tipo_contato IN ('Ligação', 'WhatsApp', 'E-mail') AND resultado NOT IN ('Sem contato', 'Não atendeu', 'Caixa postal')",
             (hoje,),
         )
         efetivos = c.fetchone()["qtd"]
@@ -42,7 +42,7 @@ class SqliteRelatorioRepository(RelatorioRepository):
         c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status = 'Interessado'")
         interessados = c.fetchone()["qtd"]
 
-        c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status = 'Negociação'")
+        c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status IN ('Em negociação', 'Negociação')")
         negociacoes = c.fetchone()["qtd"]
 
         conn.close()
@@ -63,7 +63,7 @@ class SqliteRelatorioRepository(RelatorioRepository):
         if not data_fim:
             data_fim = data_inicio
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -89,7 +89,8 @@ class SqliteRelatorioRepository(RelatorioRepository):
             """
             SELECT COUNT(*) as qtd FROM contatos
             WHERE date(data) BETWEEN ? AND ?
-              AND resultado NOT IN ('Sem contato', 'Não atendeu', 'Pulado na fila')
+              AND tipo_contato IN ('Ligação', 'WhatsApp', 'E-mail')
+              AND resultado NOT IN ('Sem contato', 'Não atendeu', 'Caixa postal', 'Pulado na fila')
         """,
             (data_inicio, data_fim),
         )
@@ -107,7 +108,7 @@ class SqliteRelatorioRepository(RelatorioRepository):
         c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status = 'Interessado'")
         interessados = c.fetchone()["qtd"]
 
-        c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status = 'Negociação'")
+        c.execute("SELECT COUNT(*) as qtd FROM leads WHERE status IN ('Em negociação', 'Negociação')")
         negociacoes = c.fetchone()["qtd"]
 
         c.execute(
@@ -147,7 +148,6 @@ class SqliteRelatorioRepository(RelatorioRepository):
             """
             SELECT COUNT(*) as qtd FROM prospeccao_temp
             WHERE data_prospeccao BETWEEN ? AND ?
-              AND (arquivado = 0 OR arquivado IS NULL)
               AND convertido_lead_id IS NOT NULL
         """,
             (data_inicio, data_fim),
@@ -255,7 +255,7 @@ class SqliteRelatorioRepository(RelatorioRepository):
         }
 
     def get_relatorio_prospeccao(self, data_inicio: str | None = None, data_fim: str | None = None) -> dict:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 

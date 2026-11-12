@@ -1,8 +1,8 @@
 """Rotas web de Prospecção."""
 from __future__ import annotations
 
+from interfaces.web.shared.navigation import local_redirect
 from flask import Flask, jsonify, redirect, render_template, request, url_for
-import unicodedata
 
 from application.prospeccao.create_draft import CreateProspecctionDraftRequest, create_prospeccao_draft_with_repo
 from application.prospeccao.list_view import ProspecctionListViewRequest, build_prospeccao_list_view_with_repo
@@ -55,7 +55,7 @@ def prospeccao_view():
     # Se houver apenas um item e for vazio ou "Todos", limpamos a lista
     if not filtro_status_list or (len(filtro_status_list) == 1 and not filtro_status_list[0]):
         filtro_status_list = []
-    
+
     filtro_status = filtro_status_list[0] if len(filtro_status_list) == 1 else None
     if len(filtro_status_list) > 1:
         filtro_status = ",".join(filtro_status_list)
@@ -116,8 +116,7 @@ def rascunho_novo():
     cnpj_valid = cnpj_norm if (cnpj_norm and is_valid_cnpj(cnpj_norm)) else None
 
     status_prospeccao = (request.form.get("status_prospeccao") or "").strip()
-    status_key = unicodedata.normalize("NFD", status_prospeccao).encode("ascii", "ignore").decode().casefold()
-    
+
     if not status_prospeccao:
         return redirect(url_for("prospeccao_view"))
 
@@ -145,19 +144,15 @@ def rascunho_novo():
         repo,
     )
 
-    # Negociacao vira Lead e aparece na pagina de Leads.
-    if status_key == "em negociacao":
-        lead_id = repo.converter_para_lead(result.prospeccao_id)
-        if lead_id:
-            return redirect(url_for("leads_list"))
-        return redirect(_build_prospeccao_url_with_filters(erro="Nao foi possivel converter o contato em Lead."))
+    if result.lead_id:
+        return redirect(url_for('leads_list'))
 
     # Redirecionar para agendamentos se status for "Pediu para retornar"
     if status_prospeccao == "Pediu para retornar":
         return redirect(url_for("agendamentos_view"))
 
     next_url = request.form.get("next") or request.form.get("next_url")
-    return redirect(next_url or url_for("prospeccao_view"))
+    return redirect(local_redirect(next_url, url_for("prospeccao_view")))
 
 
 def rascunho_status(prospeccao_id: int):
@@ -168,7 +163,7 @@ def rascunho_status(prospeccao_id: int):
     next_url = request.form.get("next")
 
     if not novo_status:
-        return redirect(next_url or _build_prospeccao_url_with_filters())
+        return redirect(local_redirect(next_url, _build_prospeccao_url_with_filters()))
 
     repo = prospeccao_repository()
 
@@ -184,17 +179,16 @@ def rascunho_status(prospeccao_id: int):
     )
 
     if next_url and result.ok and not result.redirect_kwargs:
-        return redirect(next_url)
+        return redirect(local_redirect(next_url, url_for("prospeccao_view")))
     if result.redirect_to == "prospeccao_view":
         return redirect(_build_prospeccao_url_with_filters(**result.redirect_kwargs))
     return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
 
 
 def rascunho_converter(prospeccao_id: int):
-    lead_id = prospeccao_repository().converter_para_lead(prospeccao_id)
-    if lead_id:
-        return redirect(url_for("lead_detail", lead_id=lead_id))
-    return redirect(_build_prospeccao_url_with_filters())
+    result = update_prospecction_status_with_repo(
+        UpdateProspecctionStatusRequest(prospeccao_id, 'Interessado', None, None, None), prospeccao_repository())
+    return redirect(url_for(result.redirect_to, **result.redirect_kwargs))
 
 
 def rascunho_excluir(prospeccao_id: int):
@@ -208,7 +202,7 @@ def rascunho_observacao(prospeccao_id: int):
     whatsapp = (request.form.get("whatsapp") or "").strip() or None
     responsavel = (request.form.get("responsavel") or "").strip() or None
     email = (request.form.get("email") or "").strip() or None
-    
+
     repo = prospeccao_repository()
     repo.update_draft(
         prospeccao_id=prospeccao_id,

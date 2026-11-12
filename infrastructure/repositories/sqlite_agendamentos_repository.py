@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any
 
-from database import DB_PATH
+from database import DB_PATH, get_db_connection
 from domain.repositories.agendamentos_repository import AgendamentosRepository, AgendamentosViewData
 
 
@@ -65,7 +65,7 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
         return rows
 
     def rolar_agendamentos_pendentes(self, data_limite: str) -> int:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
 
         c.execute(
@@ -84,34 +84,34 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
         return affected
 
     def get_view_data(self, data: str, mostrar_todos: bool = False) -> AgendamentosViewData:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
         # Agendamentos de prospecções
         c.execute(
             """
-            SELECT 
+            SELECT
                 p.*,
                 (
-                    SELECT detalhe FROM prospeccao_eventos 
-                    WHERE prospeccao_id = p.id 
+                    SELECT detalhe FROM prospeccao_eventos
+                    WHERE prospeccao_id = p.id
                     AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                    ORDER BY data_evento DESC 
+                    ORDER BY data_evento DESC
                     LIMIT 1
                 ) as ultima_tentativa_detalhe,
                 (
-                    SELECT data_evento FROM prospeccao_eventos 
-                    WHERE prospeccao_id = p.id 
+                    SELECT data_evento FROM prospeccao_eventos
+                    WHERE prospeccao_id = p.id
                     AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                    ORDER BY data_evento DESC 
+                    ORDER BY data_evento DESC
                     LIMIT 1
                 ) as ultima_tentativa_data_evento
             FROM prospeccao_temp p
             WHERE p.data_retorno = ?
               AND (p.arquivado = 0 OR p.arquivado IS NULL)
-            ORDER BY 
-                CASE 
+            ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
@@ -124,33 +124,33 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
 
         c.execute(
             """
-            SELECT 
+            SELECT
                 p.*,
                 (
-                    SELECT detalhe FROM prospeccao_eventos 
-                    WHERE prospeccao_id = p.id 
+                    SELECT detalhe FROM prospeccao_eventos
+                    WHERE prospeccao_id = p.id
                     AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                    ORDER BY data_evento DESC 
+                    ORDER BY data_evento DESC
                     LIMIT 1
                 ) as ultima_tentativa_detalhe,
                 (
-                    SELECT data_evento FROM prospeccao_eventos 
-                    WHERE prospeccao_id = p.id 
+                    SELECT data_evento FROM prospeccao_eventos
+                    WHERE prospeccao_id = p.id
                     AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                    ORDER BY data_evento DESC 
+                    ORDER BY data_evento DESC
                     LIMIT 1
                 ) as ultima_tentativa_data_evento
             FROM prospeccao_temp p
             WHERE p.data_retorno < ?
               AND p.data_retorno IS NOT NULL
               AND (p.arquivado = 0 OR p.arquivado IS NULL)
-            ORDER BY 
-                CASE 
+            ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
                 END ASC,
-                p.data_retorno, 
+                p.data_retorno,
                 p.hora_retorno
         """,
             (data,),
@@ -161,28 +161,28 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
         if mostrar_todos:
             c.execute(
                 """
-                SELECT 
+                SELECT
                     p.*,
                     (
-                        SELECT detalhe FROM prospeccao_eventos 
-                        WHERE prospeccao_id = p.id 
+                        SELECT detalhe FROM prospeccao_eventos
+                        WHERE prospeccao_id = p.id
                         AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                        ORDER BY data_evento DESC 
+                        ORDER BY data_evento DESC
                         LIMIT 1
                     ) as ultima_tentativa_detalhe,
                     (
-                        SELECT data_evento FROM prospeccao_eventos 
-                        WHERE prospeccao_id = p.id 
+                        SELECT data_evento FROM prospeccao_eventos
+                        WHERE prospeccao_id = p.id
                         AND tipo_evento IN ('STATUS_CHANGE', 'RETORNO_TENTATIVA', 'RETORNO_RESULTADO')
-                        ORDER BY data_evento DESC 
+                        ORDER BY data_evento DESC
                         LIMIT 1
                     ) as ultima_tentativa_data_evento
                 FROM prospeccao_temp p
                 WHERE p.data_retorno > ?
                   AND p.data_retorno IS NOT NULL
                   AND (p.arquivado = 0 OR p.arquivado IS NULL)
-                ORDER BY 
-                CASE 
+                ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
@@ -232,18 +232,19 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
                 FROM contatos
                 WHERE lead_id = l.id
                   AND data_retorno IS NOT NULL
+                  AND COALESCE(retorno_encerrado, 0) = 0
                 ORDER BY id DESC
                 LIMIT 1
             )
-              AND l.status <> 'Sem interesse'
+              AND l.status NOT IN ('Sem interesse', 'Descartado', 'Já tem consultor atendendo')
               AND c2.data_retorno = ?
-            ORDER BY 
-                CASE 
+            ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
                 END ASC,
-                (c2.hora_retorno IS NULL) ASC, 
+                (c2.hora_retorno IS NULL) ASC,
                 c2.hora_retorno ASC
         """,
             (data,),
@@ -288,19 +289,20 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
                 FROM contatos
                 WHERE lead_id = l.id
                   AND data_retorno IS NOT NULL
+                  AND COALESCE(retorno_encerrado, 0) = 0
                 ORDER BY id DESC
                 LIMIT 1
             )
-              AND l.status <> 'Sem interesse'
+              AND l.status NOT IN ('Sem interesse', 'Descartado', 'Já tem consultor atendendo')
               AND c2.data_retorno < ?
-            ORDER BY 
-                CASE 
+            ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
                 END ASC,
-                c2.data_retorno ASC, 
-                (c2.hora_retorno IS NULL) ASC, 
+                c2.data_retorno ASC,
+                (c2.hora_retorno IS NULL) ASC,
                 c2.hora_retorno ASC
         """,
             (data,),
@@ -317,8 +319,8 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
                 SELECT * FROM prospeccao_temp
                 WHERE data_retorno > ?
                   AND (arquivado = 0 OR arquivado IS NULL)
-                ORDER BY 
-                CASE 
+                ORDER BY
+                CASE
                     WHEN substr(replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                     WHEN substr(replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                     ELSE 3
@@ -351,19 +353,20 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
                     SELECT id FROM contatos
                     WHERE lead_id = l.id
                       AND data_retorno IS NOT NULL
+                  AND COALESCE(retorno_encerrado, 0) = 0
                     ORDER BY id DESC
                     LIMIT 1
                 )
-                  AND l.status <> 'Sem interesse'
+                  AND l.status NOT IN ('Sem interesse', 'Descartado', 'Já tem consultor atendendo')
                   AND c2.data_retorno > ?
-                ORDER BY 
-                    CASE 
+                ORDER BY
+                    CASE
                         WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) IN ('2', '3', '4', '5') THEN 1
                         WHEN substr(replace(replace(replace(replace(replace(l.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', ''), 3, 1) = '9' THEN 2
                         ELSE 3
                     END ASC,
-                    c2.data_retorno ASC, 
-                    (c2.hora_retorno IS NULL) ASC, 
+                    c2.data_retorno ASC,
+                    (c2.hora_retorno IS NULL) ASC,
                     c2.hora_retorno ASC
             """,
                 (data,),
@@ -391,10 +394,11 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
                 FROM contatos
                 WHERE lead_id = l.id
                   AND data_retorno IS NOT NULL
+                  AND COALESCE(retorno_encerrado, 0) = 0
                 ORDER BY id DESC
                 LIMIT 1
             )
-              AND l.status <> 'Sem interesse'
+              AND l.status NOT IN ('Sem interesse', 'Descartado', 'Já tem consultor atendendo')
               AND c2.data_retorno > ?
         """,
             (data,),
@@ -420,21 +424,21 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
         )
 
     def registrar_tentativa_retorno(self, prospeccao_id: int, observacao: str) -> bool:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
-        
+
         # Extrair a observação do detalhe (formato: "Resultado | Observação")
         obs_extraida = None
         if " | " in observacao:
             obs_extraida = observacao.split(" | ", 1)[1]
-        
+
         # Atualizar o campo observacao na prospeccao_temp se houver observação
         if obs_extraida:
             c.execute(
                 "UPDATE prospeccao_temp SET observacao = ? WHERE id = ?",
                 (obs_extraida, prospeccao_id),
             )
-        
+
         c.execute(
             """
             INSERT INTO prospeccao_eventos (prospeccao_id, tipo_evento, detalhe)
@@ -454,7 +458,7 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
 
     ) -> bool:
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
 
         c = conn.cursor()
 
@@ -489,7 +493,7 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
 
     def update_segmento(self, prospeccao_id: int, segmento: str) -> bool:
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
 
         c = conn.cursor()
 
@@ -508,4 +512,3 @@ class SqliteAgendamentosRepository(AgendamentosRepository):
         conn.close()
 
         return affected > 0
-
