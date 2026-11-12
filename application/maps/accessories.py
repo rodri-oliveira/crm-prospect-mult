@@ -18,9 +18,10 @@ def accessories_queries(cidade, estado):
     estado = (estado or '').strip().upper()
     if not cidade or estado not in SOUTHEAST:
         raise ValueError('Informe a cidade e selecione SP, RJ, MG ou ES.')
-    # Small local batches; no brand or computer-only searches.
-    terms = ('loja de acessórios de informática', 'distribuidor de periféricos de informática',
-             'revenda de suprimentos de informática', 'loja de informática mouse teclado headset')
+    # Discover by the merchant's actual Maps category, then qualify accessories.
+    # Most small resellers are listed as computer stores, not as peripheral distributors.
+    terms = ('loja de informática', 'informática', 'suprimentos de informática',
+             'periféricos de informática', 'distribuidor de informática', 'papelaria e informática')
     return [{'q': f'{term} em "{cidade}", {estado}', 'segmento': SEGMENT} for term in terms]
 
 
@@ -51,7 +52,12 @@ def assess_accessories(item):
         categories = [categories]
     evidence = _norm_key(' '.join([name, str(item.get('__raw_text') or ''), *map(str, categories)]))
     fit = any(term in evidence for term in RETAIL_TERMS)
-    service_only = any(term in evidence for term in SERVICE_TERMS) and not fit
+    identity = _norm_key(' '.join([name, *map(str, categories)]))
+    education = bool(re.search(r'\b(faculdade|universidade|fatec|escola|cursos? de informatica|instituto de ensino)\b', identity))
+    computer_merchant = any(term in identity for term in ('informatica', 'periferico', 'suprimentos de computador', 'computer store', 'computer accessories'))
+    unrelated_security = any(term in evidence for term in ('portoes', 'portao', 'fornecedor de sistema de seguranca', 'automacao de portoes', 'serralheria')) and not computer_merchant
+    service_only = education or unrelated_security or (any(term in evidence for term in SERVICE_TERMS) and not computer_merchant)
+    exclusion_reason = 'ensino' if education else 'portões/segurança sem comércio de informática' if unrelated_security else 'serviço sem evidência de revenda' if service_only else ''
     phone = ''.join(c for c in str(item.get('telefone') or item.get('whatsapp') or '') if c.isdigit())
     if phone.startswith('55') and len(phone) in (12, 13):
         phone = phone[2:]
@@ -66,7 +72,7 @@ def assess_accessories(item):
     pending.append('Confirmar atividade, comprador e telefone antes da abordagem')
     return {'accessories_fit': fit, 'service_only': service_only,
             'quality_priority': 'Priorizar revisão' if fit and contact else 'Revisar dados',
-            'quality_notes': pending, 'contact_verified': False}
+            'quality_notes': pending, 'contact_verified': False, 'exclusion_reason': exclusion_reason}
 
 
 def filter_accessories(items):
@@ -79,3 +85,24 @@ def filter_accessories(items):
         item.update(quality)
         result.append(item)
     return sorted(result, key=lambda item: (not item['accessories_fit'], item['quality_priority'] != 'Priorizar revisão'))
+
+
+def filter_accessories_location(items, cidade, estado):
+    """Use explicit location fields; company suffixes like 'Tecnologia' are not cities."""
+    result = []
+    from services.maps_card_parser import card_location, STREET
+    target_city, target_state = _norm_key(cidade), (estado or '').upper()
+    for item in items:
+        city, uf = card_location(item.get('endereco') or item.get('__raw_text') or '')
+        extracted = str(item.get('cidade') or '').strip()
+        if not city and extracted and not item.get('location_inferred'):
+            # Old scraper values sometimes contain the whole street/category: those are inconclusive.
+            if not STREET.search(extracted) and not re.search(r'[\d|,]', extracted) and not re.search(r'\b(rua|avenida|loja|fornecedor)\b', extracted, re.I):
+                city = extracted
+        uf = uf or str(item.get('estado') or '').strip().upper()
+        if city and target_city and _norm_key(city) != target_city:
+            continue
+        if uf and target_state and uf != target_state:
+            continue
+        result.append(item)
+    return result

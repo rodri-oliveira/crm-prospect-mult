@@ -42,6 +42,7 @@ export const loadResults = async () => {
 
         // Atualizar status e estatísticas
         const totalQueries = (data.executed_queries || []).length;
+        const collected = (data.query_stats || []).reduce((n, item) => n + (Number(item.collected) || 0), 0);
         const mergedBefore = data.merged_before_dedupe || 0;
         const mergedAfter = data.merged_after_dedupe || 0;
 
@@ -116,6 +117,7 @@ export const loadResults = async () => {
         }
         // A zero-result search is shown as empty; never reuse another city's contacts.
         writeMapsCache(nextItems, buildQueryPayload());
+        statusEl.textContent = `${collected} registros coletados em ${totalQueries} consultas; ${nextItems.length} lojas na lista após filtros e duplicados.`;
         pagination.currentPage = 1;
         renderResults(nextItems);
         try {

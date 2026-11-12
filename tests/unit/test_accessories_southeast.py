@@ -7,7 +7,8 @@ from domain.repositories.maps_existing_keys_repository import ExistingMapsKeys
 @pytest.mark.parametrize('uf',['SP','RJ','MG','ES'])
 def test_focus_has_small_local_queries_for_every_southeast_state(uf):
     result=generate_queries_for_segments([SEGMENT],'Cidade Teste',uf)
-    assert len(result.queries)==4
+    assert result.primary_query.startswith('loja de informática em ')
+    assert any(q['q'].startswith('suprimentos de informática em ') for q in result.queries)
     assert all(f'"Cidade Teste", {uf}' in q['q'] for q in result.queries)
     assert not any('Dell' in q['q'] or 'Lenovo' in q['q'] for q in result.queries)
 

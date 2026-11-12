@@ -4,7 +4,7 @@
 
 | Área | Local |
 |---|---|
-| Foco comercial atual e quatro buscas locais | `application/maps/accessories.py` |
+| Foco comercial atual e consultas de descoberta | `application/maps/accessories.py` |
 | Orquestração da busca e compatibilidade das chamadas | `application/maps/search_results.py` |
 | Construção das consultas dos segmentos anteriores | `application/maps/queries.py` |
 | Vocabulários dos segmentos anteriores | `application/maps/profiles.py` |
@@ -37,10 +37,20 @@ Nesta execução, a inicialização do navegador foi bloqueada pelas restriçõe
 
 ## Resultado desta revisão
 
-156 testes Python aprovados e 1 teste de navegador não executado (opt-in). O vínculo entre 15 módulos JavaScript, a sintaxe e os utilitários de escape/URL foram verificados separadamente com Node.
+167 testes Python aprovados e 1 teste de navegador não executado (opt-in). O vínculo entre 15 módulos JavaScript, a sintaxe e os utilitários de escape/URL foram verificados separadamente com Node.
 
 ## Banco existente
 
 Faça backup com `python -m scripts.backup_database` antes da atualização. Migrações são aditivas. O controle `retorno_encerrado` é criado nos contatos para encerrar pendências sem apagar as datas históricas. Conexões do runtime ativam chaves estrangeiras. A aplicação não reclassifica registros legados automaticamente.
 
 O repositório público deve conter apenas código e dados sintéticos. Banco, backups, listas comerciais e relatórios exportados ficam fora do Git.
+
+## Correção da regressão de descoberta — Adamantina
+
+A revisão anterior restringiu indevidamente a descoberta a consultas específicas de acessórios e deixou passar faculdade e fornecedor de portões. Além disso, o filtro baseado no sufixo do nome descartava lojas como BSN Tecnologia, interpretando Tecnologia como uma cidade. Essa validação por nome foi retirada do fluxo de acessórios; localização explícita continua sendo conferida.
+
+A descoberta usa categorias de lojas de informática, informática, suprimentos, periféricos, distribuidores e papelaria/informática. A atividade real é qualificada após a coleta. Categorias capturadas do cartão são separadas do segmento selecionado na busca. O coletor não lê contêineres com links de outros estabelecimentos. Ensino e portões/segurança sem evidência de comércio de informática são excluídos.
+
+Os logs por consulta mostram `collected`, `after_activity` e `after_location`, além dos únicos após deduplicação. O mapa do Google e a lista coletada não são fontes idênticas; não se promete igualdade entre todos os marcadores visíveis e os resultados extraídos. O cache antigo dos resultados é invalidado; cadastros e histórico comercial não são apagados.
+
+Os testes reproduzem os nomes e tipos dos casos relatados, com categorias de exemplo explicitamente declaradas. Não são uma medição da quantidade real disponível no Google Maps. A tentativa de abrir o Chromium neste ambiente foi bloqueada, portanto a coleta real permanece sem validação nesta execução.

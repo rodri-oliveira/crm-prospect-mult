@@ -2,7 +2,8 @@ import time
 from copy import deepcopy
 import hashlib
 import re
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
+from services.maps_card_parser import card_location, card_categories
 from playwright.sync_api import sync_playwright
 
 _CACHE = {}
@@ -176,6 +177,27 @@ def scrape_maps_place_details(maps_url: str, headless: bool = True):
             browser.close()
 
 
+def _result_card_text(anchor):
+    """Never read a parent container containing other establishments."""
+    selected_href = anchor.get_attribute('href') or ''
+    best = ''
+    for depth in range(1, 7):
+        try:
+            parent = anchor.locator(f'xpath=ancestor::div[{depth}]')
+            if parent.count() == 0:
+                break
+            links = parent.first.locator('a[href*="/maps/place/"]')
+            if links.count() > 20 or any((links.nth(i).get_attribute('href') or '') != selected_href
+                                       for i in range(links.count())):
+                break
+            text = (parent.first.inner_text() or '').strip()
+            if text and len(text) <= 4000:
+                best = text
+        except Exception:
+            continue
+    return best
+
+
 def _cache_key(query: str, limit: int) -> str:
     return f"{query.strip().lower()}|{limit}"
 
@@ -196,7 +218,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
     if cached and (now - cached[0]) < cache_ttl_seconds:
         return deepcopy(cached[1])
 
-    url = f"https://www.google.com/maps/search/{query.replace(' ', '%20')}"
+    url = f"https://www.google.com/maps/search/{quote(query, safe='')}"
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
@@ -219,7 +241,9 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
             seen = set()
 
             for _ in range(12):
-                anchors = page.locator('a[href*="/maps/place/"]')
+                # Avoid collecting unrelated markers/links outside the actual results feed.
+                scope = feed.first if feed.count() > 0 else page
+                anchors = scope.locator('a[href*="/maps/place/"]')
                 count = anchors.count()
                 for i in range(count):
                     a = anchors.nth(i)
@@ -259,33 +283,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                     card_text = ""
 
                     try:
-                        # Estratégia 1: Subir na árvore DOM até encontrar o container do item
-                        # O card do Maps geralmente tem role='article' ou é um div com dados do estabelecimento
-                        try:
-                            # Procura por ancestor que seja o container do resultado
-                            card_container = a.locator('xpath=ancestor::div[@role="article"]')
-                            if card_container.count() == 0:
-                                # Fallback: procura container por estrutura de árvore
-                                card_container = a.locator('xpath=ancestor::div[3]')
-
-                            if card_container.count() > 0:
-                                card_text = (card_container.first.inner_text() or "").strip()
-                        except Exception:
-                            pass
-
-                        # Estratégia 2: Se ainda não conseguiu, tenta subir manualmente
-                        if not card_text:
-                            try:
-                                card_text = (a.locator("xpath=../..").first.inner_text() or "").strip()
-                            except Exception:
-                                pass
-
-                        # Estratégia 3: Último recurso - tenta subir mais na árvore
-                        if not card_text:
-                            try:
-                                card_text = (a.locator("xpath=../../..").first.inner_text() or "").strip()
-                            except Exception:
-                                pass
+                        card_text = _result_card_text(a)
 
                         # Filtra botões de ação conhecidos que poluem o texto
                         if card_text:
@@ -315,14 +313,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                                         endereco_completo = line
                                         break
 
-                            # Extrair cidade e estado do endereço ou do card_text
-                            full_text = endereco_completo if endereco_completo else card_text
-                            city_state_match = re.search(r'([A-Za-zÀ-ÿ0-9\s\-]+?)\s*[,·\-]\s*(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)\b', full_text, re.IGNORECASE)
-                            if city_state_match:
-                                cidade_extraida = city_state_match.group(1).strip()
-                                estado_extraido = city_state_match.group(2).strip().upper()
-                                if not endereco_completo:
-                                    endereco_completo = f"{cidade_extraida} - {estado_extraido}"
+                            cidade_extraida, estado_extraido = card_location(endereco_completo or card_text)
 
                             # Extrair telefone do card_text
                             phone_match = re.search(r'(\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4})', card_text)
@@ -354,6 +345,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                         "id": place_key,
                         "maps_place_id": maps_place_id or place_key,
                         "nome": name,
+                        "categorias": card_categories(card_text, name),
                         "endereco": _clean_address(endereco_completo),
                         "cidade": cidade_extraida,
                         "estado": estado_extraido,
