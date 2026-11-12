@@ -30,9 +30,9 @@
     <div class="flex justify-between items-center px-2">
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Prospecção Ativa</h2>
-            <p class="text-sm text-gray-500 mt-1">Busque lojas, adicione à lista e classifique os resultados das ligações.</p>
+            <p class="text-sm text-gray-500 mt-1">Acessórios de informática · SP, RJ, MG e ES. Revise a loja e o contato antes da abordagem.</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2"><a href="/prospeccao/importar" class="text-sm text-blue-700 underline">Importar CSV</a>
             <a href="/relatorio/prospeccao" class="inline-flex items-center gap-1.5 bg-brand-600 text-white px-3 py-1.5 rounded-md hover:bg-brand-700 text-xs font-medium shadow-sm transition-colors">
                 ANÁLISE
             </a>
@@ -40,128 +40,30 @@
     </div>
 
     <!-- Interface Dividida -->
-    <div class="flex flex-1 gap-4 min-h-[600px]">
+    <div class="flex flex-col xl:flex-row flex-1 gap-4 min-h-[600px]">
         <!-- Lado Esquerdo: Mapa + Lista -->
         <div class="flex-[2] flex flex-col gap-4">
             <!-- Mapa -->
-            <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                <div class="p-4 bg-gray-50 border-b border-gray-200">
-                    <div class="flex items-end gap-3">
-                        <div class="flex-1 relative" id="segmentoSelector" x-data="segmentoSelector()" @click.away="open = false">
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Segmentos</label>
-                            <button type="button" @click="open = !open" class="w-full rounded-md border border-gray-300 shadow-sm bg-white px-3 py-2 text-left sm:text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 min-h-[38px]">
-                                <span class="flex flex-wrap gap-1 flex-1" x-show="selecionados.length > 0">
-                                    <template x-for="seg in selecionados" :key="seg">
-                                        <span class="inline-flex items-center bg-brand-100 text-brand-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                                            <span x-text="seg"></span>
-                                            <button type="button" @click.stop="toggle(seg)" class="ml-1 text-brand-600 hover:text-brand-900 focus:outline-none">&times;</button>
-                                        </span>
-                                    </template>
-                                </span>
-                                <span class="text-gray-400" x-show="selecionados.length === 0">Selecione segmentos...</span>
-                                <svg class="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-                            <div x-show="open" x-transition class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto py-1">
-                                <template x-for="seg in segmentos" :key="seg">
-                                    <label class="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
-                                        <input type="checkbox" :value="seg" :checked="selecionados.includes(seg)" @change="toggle(seg)" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500 mr-2.5">
-                                        <span x-text="seg"></span>
-                                    </label>
-                                </template>
-                            </div>
-                        </div>
-                        <div class="w-1/3" x-data="cidadeAutocomplete()">
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Cidade</label>
-                            <div class="relative" @click.away="open = false">
-                                <input 
-                                    type="text" 
-                                    id="mapCidade" 
-                                    x-ref="input"
-                                    x-model="search"
-                                    @focus="open = true; ensureLoaded()"
-                                    @keydown.escape="open = false"
-                                    @keydown.arrow-down.prevent="moveDown()"
-                                    @keydown.arrow-up.prevent="moveUp()"
-                                    @keydown.enter.prevent="selectHighlighted()"
-                                    placeholder="Nome da cidade" 
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border"
-                                    autocomplete="off"
-                                >
-                                <div 
-                                    x-show="open && (filteredCidades.length > 0 || loading)" 
-                                    x-transition
-                                    :class="open ? 'pointer-events-auto' : 'pointer-events-none'"
-                                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto py-1"
-                                >
-                                    <div x-show="loading" class="px-3 py-2 text-sm text-gray-500">Carregando...</div>
-                                    <template x-for="(cidade, index) in filteredCidades" :key="cidade">
-                                        <div 
-                                            @mousedown.prevent="select(cidade)"
-                                            :class="{'bg-brand-50': index === highlightedIndex, 'hover:bg-gray-50': index !== highlightedIndex}"
-                                            class="px-3 py-2 cursor-pointer text-sm text-gray-700"
-                                            x-text="cidade"
-                                        ></div>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="w-24">
-                            <label class="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
-                            <select id="mapEstado" class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border uppercase">
-                                <option value="">UF</option>
-                                <option value="SP" selected>SP</option>
-                                <option value="RJ">RJ</option>
-                                <option value="MG">MG</option>
-                                <option value="RS">RS</option>
-                                <option value="PR">PR</option>
-                                <option value="SC">SC</option>
-                                <option value="BA">BA</option>
-                                <option value="CE">CE</option>
-                                <option value="PE">PE</option>
-                            </select>
-                        </div>
-                        <button onclick="searchMap()" class="bg-brand-600 text-white px-5 py-2 rounded-md hover:bg-brand-700 text-sm font-medium whitespace-nowrap shadow-sm">
-                            Buscar
-                        </button>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
-                    <p class="text-xs text-gray-500">Clique nos pins para ver detalhes.</p>
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="btnResultadosMaps" class="inline-flex items-center gap-1.5 bg-white text-gray-800 px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-xs font-medium shadow-sm transition-colors">
-                            Resultados (beta)
-                        </button>
-                        <a id="openGoogleMaps" href="#" target="_blank" class="inline-flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-md hover:bg-gray-900 text-xs font-medium shadow-sm transition-colors">
-                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                            Abrir no Google Maps
-                        </a>
-                    </div>
-                </div>
-
-                <iframe id="mapFrame" class="w-full h-[300px]" src="https://www.google.com/maps?q=lojas&output=embed" frameborder="0" allowfullscreen></iframe>
-            </div>
+            {% include 'prospeccao/map_search.html' %}
 
             <!-- Filtros de Status -->
             {% if resumo_prospeccao %}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                 <div class="flex flex-wrap gap-2 items-center">
                     <span class="text-sm font-semibold text-gray-600 mr-2">Filtros:</span>
-                    <a href="/prospeccao" 
+                    <a href="/prospeccao"
                        class="px-3 py-1 rounded-full text-xs font-medium transition {% if not filtro_status %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
                         Todos ({{ resumo_prospeccao.total }})
                     </a>
                     {% for status, total in resumo_prospeccao.por_status %}
-                    <a href="/prospeccao?status={{ status|urlencode }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}" 
+                    <a href="/prospeccao?status={{ status|urlencode }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}"
                        class="px-3 py-1 rounded-full text-xs font-medium transition
                               {% if filtro_status == status %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
                         {{ status }}: {{ total }}
                     </a>
                     {% endfor %}
                 </div>
-                
+
                 {% if resumo_prospeccao.cidades %}
                 <div class="mt-3 pt-2 border-t border-gray-100 flex flex-wrap gap-2 items-center">
                     <span class="text-[10px] font-bold text-gray-400 uppercase mr-2">Cidades Acionadas no Período:</span>
@@ -189,7 +91,7 @@
                             </a>
                         </div>
                     </div>
-                    
+
                     <!-- Filtros -->
                     <form method="GET" action="/prospeccao" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end bg-white p-3 rounded-lg border border-gray-100 shadow-sm mb-4">
                         <div class="lg:col-span-1">
@@ -212,12 +114,12 @@
                         </div>
                         <div class="lg:col-span-1">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Data Início</label>
-                            <input type="date" name="data_inicio" value="{{ data_inicio or '' }}" 
+                            <input type="date" name="data_inicio" value="{{ data_inicio or '' }}"
                                    class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
                         </div>
                         <div class="lg:col-span-1">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Data Fim</label>
-                            <input type="date" name="data_fim" value="{{ data_fim or '' }}" 
+                            <input type="date" name="data_fim" value="{{ data_fim or '' }}"
                                    class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
                         </div>
                         <div class="lg:col-span-1 relative group" id="statusFilterGroup">
@@ -233,15 +135,15 @@
                                     <span class="text-xs font-bold text-gray-700">TODOS OS STATUS</span>
                                 </label>
                                 {% set statuses = [
-                                    'Não contatado', 'Não atendeu', 'Caixa postal', 'Enviado Portfólio Whats', 
-                                    'Enviado Portfólio por E-mail', 'Não analisou ainda o material', 
-                                    'Aguard. Lista Prod.', 'Pediu para retornar', 'Solicitou portfólio', 
-                                    'Em negociação', 'Interessado', 'Já tem consultor atendendo', 
+                                    'Não contatado', 'Não atendeu', 'Caixa postal', 'Enviado Portfólio Whats',
+                                    'Enviado Portfólio por E-mail', 'Não analisou ainda o material',
+                                    'Aguard. Lista Prod.', 'Pediu para retornar', 'Solicitou portfólio',
+                                    'Em negociação', 'Interessado', 'Já tem consultor atendendo',
                                     'Sem interesse', 'Descartado', 'Convertido em Lead'
                                 ] %}
                                 {% for s in statuses %}
                                 <label class="flex items-center gap-2 p-1.5 hover:bg-brand-50 rounded cursor-pointer transition-colors whitespace-nowrap">
-                                    <input type="checkbox" name="status" value="{{ s }}" 
+                                    <input type="checkbox" name="status" value="{{ s }}"
                                            class="status-checkbox rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                            {% if s in filtro_status_list %}checked{% endif %}>
                                     <span class="text-xs text-gray-600">{{ s }}</span>
@@ -269,408 +171,13 @@
                         </div>
                     </form>
                 </div>
-                
+
                 <div class="overflow-y-auto flex-1 p-4">
                     {% if prospeccoes %}
                     <div class="space-y-3">
                         {% for item in prospeccoes %}
-                        <div class="border border-gray-200 rounded-lg p-3 {% if item.arquivado %}bg-gray-50 opacity-75{% else %}bg-white{% endif %}">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <h4 class="font-semibold text-gray-900">{{ item.nome_loja }}</h4>
-                                    <p class="text-sm text-gray-500">
-                                        {{ item.cidade }} {% if item.estado %}- {{ item.estado }}{% endif %}
-                                        {% if item.maps_url %}
-                                        <a href="{{ item.maps_url }}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">
-                                            📍
-                                        </a>
-                                        {% endif %}
-                                    </p>
-
-                                    {% if item.segmento %}
-                                    <span class="inline-block mt-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{{ item.segmento }}</span>
-                                    {% endif %}
-                                    <div class="flex items-center gap-1.5 mt-1.5 py-1 px-2 bg-gray-50 rounded border border-gray-100 w-fit">
-                                        <span class="text-[10px] text-gray-400 uppercase font-bold">Contato:</span>
-                                        <span class="text-[10px] font-bold text-gray-600">{{ item.data_prospeccao }}</span>
-                                    </div>
-                                </div>
-                                {% set status_options = [
-                                    ('Não contatado', 'bg-gray-50 text-gray-600 border-gray-200'),
-                                    ('Não atendeu', 'bg-red-50 text-red-700 border-red-100'),
-                                    ('Caixa postal', 'bg-gray-50 text-gray-700 border-gray-100'),
-                                    ('Enviado Portfólio Whats', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
-                                    ('Enviado Portfólio por E-mail', 'bg-teal-50 text-teal-700 border-teal-100'),
-                                    ('Não analisou ainda o material', 'bg-amber-50 text-amber-700 border-amber-100'),
-                                    ('Agendamento', 'bg-yellow-50 text-yellow-700 border-yellow-100'),
-                                    ('Pediu para retornar', 'bg-yellow-50 text-yellow-700 border-yellow-100'),
-                                    ('Solicitou portfólio', 'bg-blue-50 text-blue-700 border-blue-100'),
-                                    ('Portfólio', 'bg-blue-50 text-blue-700 border-blue-100'),
-                                    ('Em negociação', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
-                                    ('Negociação', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
-                                    ('Interessado', 'bg-green-50 text-green-700 border-green-100'),
-                                    ('Tem consultor', 'bg-orange-50 text-orange-700 border-orange-100'),
-                                    ('Já tem consultor atendendo', 'bg-orange-50 text-orange-700 border-orange-100'),
-                                    ('Sem interesse', 'bg-gray-100 text-gray-700 border-gray-200'),
-                                    ('Descartado', 'bg-red-50 text-red-600 border-red-100'),
-                                    ('Aguard. Lista Prod.', 'bg-amber-50 text-amber-700 border-amber-100'),
-                                    ('Convertido em Lead', 'bg-purple-50 text-purple-700 border-purple-100')
-                                ] %}
-                                {% set badge_class = 'bg-gray-100 text-gray-600 border-gray-200' %}
-                                {% set display_status = item.status_prospeccao %}
-                                {% for status, classes in status_options %}
-                                    {% if item.status_prospeccao == status %}
-                                        {% set badge_class = classes %}
-                                        {% if status == 'Pediu para retornar' %}{% set display_status = 'Agendamento' %}{% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                <span class="px-2 py-1 rounded-full text-xs font-medium border {{ badge_class }}">
-                                    {{ display_status }}
-                                </span>
-                            </div>
-                            
-                            {% if item.telefone %}
-                            <div class="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                                <span>📞 {{ item.telefone }}</span>
-                                {% set clean_tel = item.telefone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') %}
-                                {% if clean_tel|length >= 10 %}
-                                    {% set first_digit = clean_tel[2:3] %}
-                                    {% if first_digit in ['2', '3', '4', '5'] %}
-                                        <span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 uppercase">Fixo</span>
-                                    {% elif first_digit == '9' %}
-                                        <span class="text-[9px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100 uppercase">Celular</span>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                            {% endif %}
-
-                            {% if item.cnpj %}
-                            <div class="flex items-center gap-2 text-[11px] text-gray-500 mb-2">
-                                <span class="font-bold">CNPJ:</span> {{ item.cnpj }}
-                            </div>
-                            {% endif %}
-
-                            {% if item.whatsapp %}
-                            <div class="flex items-center gap-2 text-sm text-green-600 mb-1">
-                                <a href="https://wa.me/55{{ item.whatsapp|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}?text=Olá {{ item.responsavel or '' }}, aqui é o Rodrigo da Multi" target="_blank" class="flex items-center gap-1 hover:underline font-bold">
-                                    <span>WhatsApp: {{ item.whatsapp }}</span>
-                                 </a>
-                            </div>
-                            {% endif %}
-
-
-                            
-                            {% if item.data_retorno %}
-                            <div class="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded mb-2">
-                                📅 Retornar em: {{ item.data_retorno }}
-                            </div>
-                            {% endif %}
-                            
-
-
-                            <!-- Formulário para adicionar/editar observação -->
-                            <form action="/prospeccao/rascunho/{{ item.id }}/observacao" method="POST" class="mb-2">
-                                <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                <div class="grid grid-cols-2 gap-2 mb-2">
-                                    <div>
-                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Telefone</label>
-                                        <input type="text" name="telefone" value="{{ item.telefone or '' }}"
-                                               placeholder="Telefone"
-                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">WhatsApp</label>
-                                        <input type="text" name="whatsapp" value="{{ item.whatsapp or '' }}"
-                                               placeholder="WhatsApp"
-                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
-                                    </div>
-                                    <div class="col-span-2 grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Responsável</label>
-                                            <input type="text" name="responsavel" value="{{ item.responsavel or '' }}"
-                                                   placeholder="Responsável"
-                                                   class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Email</label>
-                                            <input type="email" name="email" value="{{ item.email or '' }}"
-                                                   placeholder="E-mail"
-                                                   class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="flex gap-1">
-                                    <div class="flex-1">
-                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Observação</label>
-                                        <input type="text" name="observacao" value="{{ item.observacao or '' }}"
-                                               placeholder="Atualizar observação..."
-                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
-                                    </div>
-                                    <div class="flex items-end">
-                                        <button type="submit" class="px-4 py-1.5 text-xs font-bold rounded bg-brand-600 text-white hover:bg-brand-700 shadow-sm transition-all active:scale-95">Salvar</button>
-                                    </div>
-                                </div>
-                            </form>
-
-                            <!-- Box de Ações e Status -->
-                            <div class="mt-4 p-3 bg-gray-50/50 rounded-2xl border border-gray-100 shadow-sm">
-                                <div class="flex items-center gap-2 mb-3 px-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
-                                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Resultado do Contato</span>
-                                </div>
-                                
-                                <div class="flex flex-wrap gap-2 items-center">
-                                    <!-- Grupo: Tentativa -->
-                                    <div class="flex flex-wrap gap-1 items-center mr-2 pr-2 border-r border-gray-200">
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Não atendeu">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 transition-all active:scale-95">Não atendeu</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Caixa postal">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200 transition-all active:scale-95">Caixa postal</button>
-                                        </form>
-                                    </div>
-
-                                    <!-- Grupo: Portfólio -->
-                                    <div class="flex flex-wrap gap-1 items-center mr-2 pr-2 border-r border-gray-200">
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Enviado Portfólio Whats">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-all active:scale-95" title="Enviado via WhatsApp">Env. Whats</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Enviado Portfólio por E-mail">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-100 transition-all active:scale-95" title="Enviado via E-mail">Env. Email</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline" onsubmit="return pedirDataRetorno(this)">
-                                            <input type="hidden" name="status" value="Não analisou ainda o material">
-                                            <input type="hidden" name="data_retorno" class="data-retorno-input">
-                                            <input type="hidden" name="hora_retorno" class="hora-retorno-input">
-                                            <input type="hidden" name="observacao" class="observacao-retorno-input">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-100 transition-all active:scale-95">Não analisou ainda</button>
-                                        </form>
-                                    </div>
-
-                                    <!-- Grupo: Avanço/Interesse -->
-                                    <div class="flex flex-wrap gap-1 items-center mr-2 pr-2 border-r border-gray-200">
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline" onsubmit="return pedirDataRetorno(this)">
-                                            <input type="hidden" name="status" value="Pediu para retornar">
-                                            <input type="hidden" name="data_retorno" class="data-retorno-input">
-                                            <input type="hidden" name="hora_retorno" class="hora-retorno-input">
-                                            <input type="hidden" name="observacao" class="observacao-retorno-input">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-yellow-50 text-yellow-800 hover:bg-yellow-100 border border-yellow-100 transition-all active:scale-95">Agendamento</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Solicitou portfólio">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-100 transition-all active:scale-95">Solicitou Portfólio</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Em negociação">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-blue-100 text-blue-900 hover:bg-blue-200 border border-blue-200 transition-all active:scale-95">Negociação</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Interessado">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-green-50 text-green-800 hover:bg-green-100 border border-green-100 transition-all active:scale-95">Interessado</button>
-                                        </form>
-                                    </div>
-
-                                    <!-- Grupo: Descarte -->
-                                    <div class="flex flex-wrap gap-1 items-center">
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Já tem consultor atendendo">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-orange-50 text-orange-800 hover:bg-orange-100 border border-orange-100 transition-all active:scale-95">Já tem consultor</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Sem interesse">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300 transition-all active:scale-95">Sem interesse</button>
-                                        </form>
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Descartado">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-2 py-1 text-[10px] font-bold rounded bg-red-100 text-red-800 hover:bg-red-200 border border-red-200 transition-all active:scale-95">Descartado</button>
-                                        </form>
-                                    </div>
-                                </div>
-
-                                <!-- Ações de Sistema -->
-                                <div class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                                    <div class="flex gap-2">
-                                        {% if not item.convertido_lead_id %}
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/converter" method="POST" class="inline">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-purple-600 text-white hover:bg-purple-700 shadow-md shadow-purple-200 transition-all active:scale-95">
-                                                ✨ Converter Lead
-                                            </button>
-                                        </form>
-                                        {% endif %}
-                                        
-                                        <form action="/prospeccao/rascunho/{{ item.id }}/status" method="POST" class="inline">
-                                            <input type="hidden" name="status" value="Aguard. Lista Prod.">
-                                            <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                            <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                            <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                            <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                            <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                            <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                            <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                            <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                            <button type="submit" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-200 transition-all active:scale-95">
-                                                ⏳ Aguard. Lista
-                                            </button>
-                                        </form>
-                                    </div>
-                                    
-                                    <form action="/prospeccao/rascunho/{{ item.id }}/excluir" method="POST" class="inline" onsubmit="return confirm('Arquivar este item?')">
-                                        <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                        <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                        <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                        <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                        <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                        <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                        <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                        <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
-                                        <button type="submit" class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all active:scale-95">
-                                            📁 Arquivar
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
-
-                            
-                            <!-- Histórico de Eventos (colapsável) -->
-                            {% if item.eventos %}
-                            <div class="mt-2 pt-2 border-t border-gray-100" x-data="{ open: false }">
-                                <button type="button" @click="open = !open" class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
-                                    <svg class="w-4 h-4 transition" :class="{ 'rotate-90': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <span>Histórico ({{ item.eventos|length }})</span>
-                                </button>
-                                <div x-show="open" x-collapse class="mt-2 space-y-1">
-                                    {% for evento in item.eventos %}
-                                    <div class="flex items-start gap-2 text-[10px] p-2 bg-gray-50 rounded border-b border-gray-100 last:border-0">
-                                        <span class="text-gray-400 font-mono whitespace-nowrap mt-0.5">{{ evento.data_evento[:16] }}</span>
-                                        <span class="text-gray-600">
-                                            {% if evento.tipo_evento == 'STATUS_CHANGE' %}🔵{% else %}📝{% endif %}
-                                            {{ evento.detalhe }}
-                                        </span>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+{% include 'prospeccao/card.html' %}
+{% endfor %}
                     </div>
                     {% else %}
                     <div class="text-center py-10">
@@ -683,290 +190,13 @@
         </div>
 
         <!-- Lado Direito: Formulário -->
-        <div class="w-[380px] bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div class="px-5 py-3 border-b border-gray-200 bg-brand-50">
-                <h3 class="text-base font-semibold text-brand-800">➕ Adicionar à Lista</h3>
-                <p class="text-xs text-brand-600 mt-0.5">Copie do Google Maps e cole aqui</p>
-            </div>
-            <div class="p-4 overflow-y-auto flex-1">
-                <form action="/prospeccao/rascunho/novo" method="POST" id="formLead" class="space-y-3">
-                    <input type="hidden" name="maps_place_id" id="f_maps_place_id">
-                    <input type="hidden" name="maps_url" id="f_maps_url">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Nome da Loja *</label>
-                        <input type="text" name="nome_loja" id="f_nome" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Endereço</label>
-                        <input type="text" name="endereco" id="f_endereco" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <div class="flex items-center justify-between">
-                                <label class="block text-xs font-medium text-gray-700">Telefone</label>
-                                <span id="f_telefone_badge" class="hidden"></span>
-                            </div>
-                            <input type="text" name="telefone" id="f_telefone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700">WhatsApp</label>
-                            <input type="text" name="whatsapp" id="f_whatsapp" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Responsável</label>
-                        <input type="text" name="responsavel" id="f_responsavel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border" placeholder="Nome do contato">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">CNPJ</label>
-                        <input type="text" name="cnpj" id="f_cnpj" autocomplete="off" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border" placeholder="00.000.000/0000-00">
-                        <div class="mt-2 flex items-center gap-2">
-                            <button type="button" onclick="consultarCNPJ()" class="px-3 py-1.5 rounded-md bg-gray-800 text-white text-xs font-medium hover:bg-gray-900">Validar na Receita</button>
-                            <button type="button" onclick="preencherDadosCNPJ()" class="px-3 py-1.5 rounded-md bg-brand-600 text-white text-xs font-medium hover:bg-brand-700">Preencher dados</button>
-                            <button type="button" id="btnBuscarCnpjGoogle" onclick="buscarCNPJNoGoogle()" disabled class="px-3 py-1.5 rounded-md bg-gray-100 text-gray-500 text-xs font-medium disabled:opacity-60 disabled:cursor-not-allowed hover:bg-gray-200">Buscar CNPJ no Google</button>
-                            <span id="cnpjStatus" class="text-xs text-gray-500"></span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="col-span-2">
-                            <label class="block text-xs font-medium text-gray-700">Cidade</label>
-                            <input type="text" name="cidade" id="f_cidade" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700">UF</label>
-                            <input type="text" name="estado" id="f_estado" maxlength="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border uppercase">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Site</label>
-                        <div class="mt-1 flex items-stretch gap-2">
-                            <input type="text" name="site" id="f_site" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border" placeholder="ex: empresa.com.br">
-                            <button type="button" id="f_site_btn" class="hidden px-3 rounded-md bg-gray-800 text-white text-xs font-medium hover:bg-gray-900">Abrir</button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Email</label>
-                        <input type="email" name="email" id="f_email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border" placeholder="exemplo@loja.com.br">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Segmento</label>
-                        <div id="f_segmento" class="mt-1 w-full rounded-md border border-gray-300 shadow-sm px-3 py-2 max-h-40 overflow-y-auto space-y-1">
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Informática" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Informática</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Informática (Médio Porte)" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Informática (Médio Porte)</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Varejistas de Médio Porte" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Varejistas de Médio Porte</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Informática - Papelaria" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Informática - Papelaria</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Informática - Outlet/Saldão" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Informática - Outlet/Saldão</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Celulares" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Celulares</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Áudio e Vídeo" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Áudio e Vídeo</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Eletroportáteis" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Eletroportáteis</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Eletroportáteis - Outlet/Saldão" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Eletroportáteis - Outlet/Saldão</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Gamer" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Gamer</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Brinquedos" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Brinquedos</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Drones e Câmeras" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Drones e Câmeras</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Ortopédica" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Ortopédica</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Fitness" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Fitness</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Pet" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Pet</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Redes" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Redes</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Mobilidade Elétrica" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Mobilidade Elétrica</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Sennheiser" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Sennheiser</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Utilidades e Variedades" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Utilidades e Variedades</span>
-                            </label>
-                            <label class="flex items-center gap-2 text-sm text-gray-700">
-                                <input type="checkbox" name="segmento" value="Multikids" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                <span>Multikids</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Observações</label>
-                        <textarea name="observacoes" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700">Status da Ligação *</label>
-                        <select name="status_prospeccao" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                            <option value="" disabled selected>Selecione um status...</option>
-                            <option value="Não contatado">Não contatado</option>
-                            <option value="Não atendeu">Não atendeu</option>
-                            <option value="Caixa postal">Caixa postal</option>
-                            <option value="Enviado Portfólio Whats">Enviado Portfólio Whats</option>
-                            <option value="Enviado Portfólio por E-mail">Enviado Portfólio por E-mail</option>
-                            <option value="Não analisou ainda o material">Não analisou ainda o material</option>
-                            <option value="Pediu para retornar">Agendamento</option>
-                            <option value="Solicitou portfólio">Solicitou portfólio</option>
-                            <option value="Em negociação">Em negociação</option>
-                            <option value="Interessado">Interessado</option>
-                            <option value="Aguardando dados para cadastro">Aguardando dados para cadastro</option>
-                            <option value="Aguard. Lista Prod.">Aguard. Lista Prod.</option>
-                            <option value="Já tem consultor atendendo">Já tem consultor atendendo</option>
-                            <option value="Sem interesse">Sem interesse</option>
-                            <option value="Descartado">Descartado</option>
-                        </select>
-                        <p class="text-xs text-gray-500 mt-1">Obrigatório: Marque o resultado do contato</p>
-                    </div>
-
-                    <div id="campo-data-retorno" class="hidden">
-                        <label class="block text-xs font-medium text-gray-700">Data para Retornar</label>
-                        <input type="date" name="data_retorno" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                    </div>
-
-                    <div id="campo-hora-retorno" class="hidden">
-                        <label class="block text-xs font-medium text-gray-700">Horário para Retornar</label>
-                        <input type="time" name="hora_retorno" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-1.5 border">
-                    </div>
-
-                    <div class="pt-3 border-t border-gray-100">
-                        <button type="submit" class="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700">
-                            Adicionar à Lista
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        {% include 'prospeccao/contact_form.html' %}
     </div>
 </div>
 
-<div id="modalRetorno" class="fixed inset-0 z-[60] hidden" aria-hidden="true">
-    <div class="absolute inset-0 bg-black/30"></div>
-    <div class="relative z-10 flex items-center justify-center min-h-full p-4">
-        <div class="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-            <div class="px-5 py-3 bg-brand-50 border-b border-gray-200">
-                <h3 class="text-base font-semibold text-brand-800">Agendar retorno</h3>
-            </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700">Data *</label>
-                    <input type="date" id="retornoData" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700">Horário *</label>
-                    <input type="time" id="retornoHora" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700">Observação</label>
-                    <textarea id="retornoObs" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border" placeholder="Ex: Ligar para o setor de TI..."></textarea>
-                </div>
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" id="retornoCancelar" class="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">Cancelar</button>
-                    <button type="button" id="retornoSalvar" class="px-4 py-2 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-sm font-medium">Salvar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'prospeccao/return_modal.html' %}
 
-<div id="mapsDrawer" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
-    <div id="mapsOverlay" class="absolute inset-0 bg-black/30"></div>
-    <div class="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 flex flex-col">
-        <div class="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <div>
-                <h3 class="text-base font-semibold text-gray-900">Resultados do Maps (beta)</h3>
-                <p id="mapsDrawerSub" class="text-xs text-gray-500 mt-0.5"></p>
-            </div>
-            <button type="button" id="mapsDrawerClose" class="px-3 py-1.5 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-medium">Fechar</button>
-        </div>
-
-        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <div class="text-xs text-gray-600" id="mapsDrawerStatus">Pronto.</div>
-            <div class="flex items-center gap-3">
-                <div id="mapsDrawerStats" class="text-xs text-gray-500 hidden">
-                    <span id="mapsStatsUnique">0</span> únicas
-                </div>
-                <div class="flex items-center gap-2 text-xs text-gray-500">
-                    <button type="button" id="mapsPagePrev" class="px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
-                    <span id="mapsPageInfo">Página 1 de 1</span>
-                    <button type="button" id="mapsPageNext" class="px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Próxima</button>
-                    <select id="mapsPageSize" class="px-2 py-1 rounded-md border border-gray-300 bg-white text-gray-700">
-                        <option value="25">25</option>
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                    </select>
-                    <span id="mapsPageRange">Mostrando 0-0 de 0</span>
-                </div>
-                <button type="button" id="mapsDrawerReload" class="px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-xs font-medium">Atualizar</button>
-            </div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto p-4">
-            <div id="mapsResults" class="space-y-2"></div>
-            <div id="mapsEmpty" class="hidden text-center py-10">
-                <p class="text-sm text-gray-500">Nenhum resultado.</p>
-                <p class="text-xs text-gray-400 mt-1">Clique em Atualizar ou refine o filtro.</p>
-            </div>
-        </div>
-
-        <div class="px-5 py-3 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
-            <button type="button" id="mapsAddSelected" class="px-4 py-2 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-sm font-medium">Adicionar selecionados</button>
-            <button type="button" id="mapsUseSelected" class="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900 text-sm font-medium">Usar selecionado</button>
-        </div>
-    </div>
-</div>
+{% include 'prospeccao/maps_drawer.html' %}
 
 <script type="module" src="{{ url_for('static', filename='js/app.js', v='20260318-1') }}"></script>
 {% endblock %}
-

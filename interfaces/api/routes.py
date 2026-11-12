@@ -8,7 +8,7 @@ from flask import Flask, jsonify, request
 from application.maps.add_selected import AddMapsItemsRequest, add_maps_items_with_repo
 from application.maps.place_details import GetMapsPlaceDetailsRequest, get_maps_place_details
 from application.maps.search_results import (
-    SearchMapsResultsRequest, 
+    SearchMapsResultsRequest,
     search_maps_results_with_repo,
     generate_queries_for_segments,
 )
@@ -32,14 +32,12 @@ def _default_maps_estado(cidade: str, estado: str) -> str:
     estado = (estado or "").strip().upper()
     if estado:
         return estado
-    if (cidade or "").strip():
-        return "SP"
     return ""
 
 
 def api_maps_queries():
     """API: Gerar queries para segmentos (sem executar scraper).
-    
+
     Usado pelo botão Buscar para sincronizar com o Resultado Beta.
     """
     try:
@@ -61,6 +59,8 @@ def api_maps_queries():
             "primary_query": res.primary_query,
             "total_queries": res.total_queries,
         })
+    except ValueError as e:
+        return jsonify(ok=False, message=str(e)), 400
     except Exception as e:
         logger.error(f"Erro em api_maps_queries: {e}", exc_info=True)
         return jsonify({"ok": False, "message": "Erro ao gerar queries"}), 500
@@ -91,7 +91,7 @@ def api_maps_resultados():
         )
 
         return jsonify({
-            "ok": True,
+            "ok": res.ok,
             "modo": res.modo,
             "query": res.query,
             "message": res.message,
@@ -176,7 +176,7 @@ def api_rascunho_novo():
         if cnpj:
             cnpj_norm = normalize_cnpj(cnpj)
             if not is_valid_cnpj(cnpj_norm):
-                data["cnpj"] = ""
+                raise ValueError("CNPJ inválido.")
             else:
                 data["cnpj"] = cnpj_norm
 
@@ -208,11 +208,7 @@ def api_rascunho_novo():
             repo,
         )
 
-        lead_id = None
-        if _is_em_negociacao(data.get("status_prospeccao")):
-            lead_id = repo.converter_para_lead(res.prospeccao_id)
-            if not lead_id:
-                raise ValueError("Nao foi possivel converter o contato em Lead.")
+        lead_id = res.lead_id
 
         return jsonify({
             "ok": True,

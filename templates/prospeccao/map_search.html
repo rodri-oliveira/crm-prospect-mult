@@ -1,0 +1,99 @@
+<div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-200">
+                    <div class="flex items-end gap-3">
+                        <div class="flex-1 relative" id="segmentoSelector" x-data="segmentoSelector()" @click.away="open = false">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Segmentos</label>
+                            <button type="button" @click="open = !open" class="w-full rounded-md border border-gray-300 shadow-sm bg-white px-3 py-2 text-left sm:text-sm flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 min-h-[38px]">
+                                <span class="flex flex-wrap gap-1 flex-1" x-show="selecionados.length > 0">
+                                    <template x-for="seg in selecionados" :key="seg">
+                                        <span class="inline-flex items-center bg-brand-100 text-brand-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                                            <span x-text="seg"></span>
+                                            <button type="button" @click.stop="toggle(seg)" class="ml-1 text-brand-600 hover:text-brand-900 focus:outline-none">&times;</button>
+                                        </span>
+                                    </template>
+                                </span>
+                                <span class="text-gray-400" x-show="selecionados.length === 0">Selecione segmentos...</span>
+                                <svg class="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div x-show="open" x-transition class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto py-1">
+                                <template x-for="seg in segmentos" :key="seg">
+                                    <label class="flex items-center px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700">
+                                        <input type="checkbox" :value="seg" :checked="selecionados.includes(seg)" @change="toggle(seg)" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500 mr-2.5">
+                                        <span x-text="seg"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="w-1/3" x-data="cidadeAutocomplete()">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Cidade</label>
+                            <div class="relative" @click.away="open = false">
+                                <input
+                                    type="text"
+                                    id="mapCidade"
+                                    x-ref="input"
+                                    x-model="search"
+                                    @focus="open = true; ensureLoaded()"
+                                    @keydown.escape="open = false"
+                                    @keydown.arrow-down.prevent="moveDown()"
+                                    @keydown.arrow-up.prevent="moveUp()"
+                                    @keydown.enter.prevent="selectHighlighted()"
+                                    placeholder="Nome da cidade"
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border"
+                                    autocomplete="off"
+                                >
+                                <div
+                                    x-show="open && (filteredCidades.length > 0 || loading)"
+                                    x-transition
+                                    :class="open ? 'pointer-events-auto' : 'pointer-events-none'"
+                                    class="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-56 overflow-y-auto py-1"
+                                >
+                                    <div x-show="loading" class="px-3 py-2 text-sm text-gray-500">Carregando...</div>
+                                    <template x-for="(cidade, index) in filteredCidades" :key="cidade">
+                                        <div
+                                            @mousedown.prevent="select(cidade)"
+                                            :class="{'bg-brand-50': index === highlightedIndex, 'hover:bg-gray-50': index !== highlightedIndex}"
+                                            class="px-3 py-2 cursor-pointer text-sm text-gray-700"
+                                            x-text="cidade"
+                                        ></div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-24">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Estado</label>
+                            <select id="mapEstado" class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm px-3 py-2 border uppercase">
+
+
+
+
+
+
+
+
+
+
+                            <option value="">UF</option><option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option><option value="ES">ES</option></select>
+                        </div>
+                        <button onclick="searchMap()" class="bg-brand-600 text-white px-5 py-2 rounded-md hover:bg-brand-700 text-sm font-medium whitespace-nowrap shadow-sm">
+                            Buscar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-100">
+                    <p class="text-xs text-gray-500">Clique nos pins para ver detalhes.</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="btnResultadosMaps" class="inline-flex items-center gap-1.5 bg-white text-gray-800 px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-50 text-xs font-medium shadow-sm transition-colors">
+                            Resultados (beta)
+                        </button>
+                        <a id="openGoogleMaps" href="#" target="_blank" class="inline-flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-md hover:bg-gray-900 text-xs font-medium shadow-sm transition-colors">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            Abrir no Google Maps
+                        </a>
+                    </div>
+                </div>
+
+                <iframe id="mapFrame" class="w-full h-[300px]" src="https://www.google.com/maps?q=lojas&output=embed" frameborder="0" allowfullscreen></iframe>
+            </div>

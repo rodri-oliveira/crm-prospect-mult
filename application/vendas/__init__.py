@@ -1,0 +1,1 @@
+"""Sales use cases."""

@@ -114,7 +114,7 @@ export const readMapsCache = () => {
             items = rawItems ? JSON.parse(rawItems) : [];
             payload = rawPayload ? JSON.parse(rawPayload) : null;
         }
-        
+
         window.__mapsResultsCache = Array.isArray(items) ? items : [];
         window.__mapsLastPayloadCache = payload || null;
     } catch (e) {}
@@ -160,11 +160,7 @@ export const buildQueryPayload = () => {
     const segmentosSelecionados = segWrapper ? (Alpine.$data(segWrapper).selecionados || []) : [];
     const cidade = (document.getElementById('mapCidade')?.value || '').trim();
     let estado = (document.getElementById('mapEstado')?.value || '').trim();
-    if (cidade && !estado) {
-        estado = 'SP';
-        const mapEstado = document.getElementById('mapEstado');
-        if (mapEstado) mapEstado.value = estado;
-    }
+
     const query = (window.lastQuery || '').trim();
     return { segmentosSelecionados, cidade, estado, query };
 };

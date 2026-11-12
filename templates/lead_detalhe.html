@@ -34,7 +34,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="mt-4 flex flex-wrap sm:mt-0 sm:ml-4 gap-3">
                 <!-- Botões Ação Rápida -->
                 {% if lead.whatsapp %}
@@ -42,7 +42,7 @@
                     🟢 WhatsApp
                 </a>
                 {% endif %}
-                
+
                 <a href="/vendas/registrar/{{ lead.id }}" class="inline-flex items-center px-6 py-3 rounded-xl shadow-lg text-[11px] font-black uppercase tracking-widest text-white bg-brand-600 hover:bg-brand-700 transition-all active:scale-95 shadow-brand-500/30">
                     💰 Faturar Venda
                 </a>
@@ -54,16 +54,17 @@
         </div>
     </div>
      <div class="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         <!-- Sidebar: Informações (4 de 12) -->
         <aside class="lg:col-span-4 space-y-6 lg:sticky lg:top-4">
-            
+
             <!-- Card de Status -->
             <div class="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm">
                 <div class="flex items-center justify-between mb-4 pl-1">
                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status do Lead</span>
                 </div>
                 <form action="/leads/{{ lead.id }}/status" method="POST" class="w-full">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <select name="status" class="block w-full text-xs border-gray-100 focus:ring-brand-500 rounded-xl shadow-xs font-bold text-gray-700 bg-gray-50/50 p-3" onchange="this.form.submit()">
                         {{ render_status_options(lead_statuses, lead.status) }}
                     </select>
@@ -74,9 +75,10 @@
             <!-- Card de Informações Gerais -->
             <div class="bg-white shadow-sm overflow-hidden rounded-3xl border border-gray-200" id="card-informacoes">
                 <form action="/leads/{{ lead.id }}/update" method="POST" id="form-edit-lead">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="px-6 py-4 flex justify-between bg-gray-50/30 border-b border-gray-100 items-center">
                         <h3 class="text-xs font-black text-gray-800 uppercase tracking-widest">Informações</h3>
-                        
+
                         <div class="flex gap-2" id="edit-controls">
                             <button type="button" id="btn-editar-lead" class="text-[10px] font-black text-brand-600 hover:text-brand-700 bg-brand-50/50 border border-brand-100 px-3 py-1.5 rounded-lg transition-all active:scale-95">
                                 📝 EDITAR
@@ -89,7 +91,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="p-5 space-y-1" id="lead-fields-container">
                         {% set fields = [
                             ('Empresa', 'nome_loja', lead.nome_loja, 'text', true),
@@ -117,7 +119,7 @@
                                         {{ value or '-' }}
                                     {% endif %}
                                 </div>
-                                <input type="{{ type }}" name="{{ name }}" value="{{ value or '' }}" {% if required %}required{% endif %} 
+                                <input type="{{ type }}" name="{{ name }}" value="{{ value or '' }}" {% if required %}required{% endif %}
                                     class="edit-input hidden w-full rounded-xl border-emerald-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 text-sm font-bold p-2 bg-white shadow-sm transition-all">
                             </div>
                         </div>
@@ -129,7 +131,7 @@
 
         <!-- Coluna Principal: Feed (8 de 12) -->
         <main class="lg:col-span-8 space-y-8">
-            
+
             <!-- Registro de Contato -->
             <div class="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
@@ -142,6 +144,7 @@
                     </div>
                     {% endif %}
                     <form action="/leads/{{ lead.id }}/contato" method="POST" class="space-y-4">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1 mb-1">Canal *</label>

@@ -1,7 +1,7 @@
 import time
+from copy import deepcopy
 import hashlib
 import re
-import logging
 from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
@@ -194,7 +194,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
     key = _cache_key(query, limit)
     cached = _CACHE.get(key)
     if cached and (now - cached[0]) < cache_ttl_seconds:
-        return cached[1]
+        return deepcopy(cached[1])
 
     url = f"https://www.google.com/maps/search/{query.replace(' ', '%20')}"
 
@@ -237,7 +237,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                             name = (a.inner_text() or "").strip().split("\n")[0]
                         except Exception:
                             name = ""
-                    
+
                     # Limpar o nome removendo ícones e caracteres especiais
                     if name:
                         name = re.sub(r'\[.*?\]', '', name)
@@ -267,12 +267,12 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                             if card_container.count() == 0:
                                 # Fallback: procura container por estrutura de árvore
                                 card_container = a.locator('xpath=ancestor::div[3]')
-                            
+
                             if card_container.count() > 0:
                                 card_text = (card_container.first.inner_text() or "").strip()
                         except Exception:
                             pass
-                        
+
                         # Estratégia 2: Se ainda não conseguiu, tenta subir manualmente
                         if not card_text:
                             try:
@@ -338,7 +338,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
                             website_match = re.search(r'(https?://[^\s<>"]+|www\.[^\s<>"]+)', card_text, re.IGNORECASE)
                             if website_match:
                                 website_extraido = website_match.group(1).strip()
-                                
+
                         # Debug: log do texto extraído para verificação
                         if raw_text:
                             import logging
@@ -380,7 +380,7 @@ def scrape_maps_results(query: str, limit: int = 20, headless: bool = False, cac
 
                 page.wait_for_timeout(900)
 
-            _CACHE[key] = (now, items)
+            _CACHE[key] = (now, deepcopy(items))
             return items
 
         finally:

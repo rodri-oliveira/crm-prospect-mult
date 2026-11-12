@@ -19,3 +19,5 @@ def register_web_routes(app: Flask) -> None:
     register_agendamentos_routes(app)
     register_cnpj_routes(app)
     register_vendas_routes(app)
+    from interfaces.web.import_routes import register_import_routes
+    register_import_routes(app)

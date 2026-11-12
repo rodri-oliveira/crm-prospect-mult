@@ -12,11 +12,7 @@ import { ProspeccaoState } from './state.js';
 export async function searchMap() {
     const cidade = (document.getElementById('mapCidade')?.value || '').trim();
     let estado = (document.getElementById('mapEstado')?.value || '').trim();
-    if (cidade && !estado) {
-        estado = 'SP';
-        const mapEstado = document.getElementById('mapEstado');
-        if (mapEstado) mapEstado.value = estado;
-    }
+
     const segWrapper = document.getElementById('segmentoSelector');
 
     let segmentos = [];
@@ -25,13 +21,13 @@ export async function searchMap() {
         segmentos = alpineData?.selecionados || [];
     } catch (e) {}
 
-    if (!cidade && !estado) {
-        alert('Informe cidade ou estado para buscar.');
+    if (!cidade || !['SP', 'RJ', 'MG', 'ES'].includes(estado)) {
+        alert('Informe a cidade e selecione SP, RJ, MG ou ES.');
         return;
     }
 
     let effectiveQuery = '';
-    
+
     // Se temos segmentos, buscar queries do backend (sincronizado)
     if (segmentos.length > 0) {
         try {
@@ -39,17 +35,17 @@ export async function searchMap() {
             if (cidade) params.set('cidade', cidade);
             if (estado) params.set('estado', estado);
             segmentos.forEach((s) => params.append('segmentos', s));
-            
+
             const resp = await fetch(`/api/maps/queries?${params.toString()}`);
             const data = await resp.json();
-            
+
             if (data.ok && data.primary_query) {
                 effectiveQuery = data.primary_query;
-                
+
                 // Salvar queries geradas para o drawer usar depois
                 window.__generatedQueries = data.queries || [];
                 window.__generatedQueriesTimestamp = Date.now();
-                
+
                 // Salvar no localStorage para persistência
                 try {
                     localStorage.setItem('mapsGeneratedQueries', JSON.stringify({
@@ -76,7 +72,7 @@ export async function searchMap() {
     }
 
     window.lastQuery = effectiveQuery;
-    
+
     // Disponibilizar globalmente para o botão "Abrir no Google Maps"
     window.__mapsPrimaryQuery = effectiveQuery;
 

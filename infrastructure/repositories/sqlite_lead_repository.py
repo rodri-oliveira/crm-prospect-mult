@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Any
 
-from database import DB_PATH
+from database import DB_PATH, get_db_connection
 from domain.repositories.lead_repository import LeadRepository
 
 
 class SqliteLeadRepository(LeadRepository):
     def get_by_id(self, lead_id: int) -> tuple[dict, list[dict], list[str]] | None:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -37,7 +36,7 @@ class SqliteLeadRepository(LeadRepository):
         return lead, contatos, segmentos
 
     def list_by_status(self, status: str | None = None) -> list[dict]:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -58,7 +57,7 @@ class SqliteLeadRepository(LeadRepository):
                     LIMIT 1
                 )
                 WHERE l.status = ?
-                  AND (c2.data_retorno IS NULL)
+                  AND (c2.data_retorno IS NULL OR c2.retorno_encerrado = 1)
                 ORDER BY l.id DESC
             """,
                 (status,),
@@ -81,7 +80,8 @@ class SqliteLeadRepository(LeadRepository):
                     LIMIT 1
                 )
                 WHERE COALESCE(l.status, '') <> 'Sem interesse'
-                  AND c2.data_retorno IS NULL
+                  AND COALESCE(l.status, '') NOT IN ('Descartado', 'Já tem consultor atendendo')
+                  AND (c2.data_retorno IS NULL OR c2.retorno_encerrado = 1)
                 ORDER BY l.id DESC
             """
             )
@@ -91,7 +91,7 @@ class SqliteLeadRepository(LeadRepository):
         return leads
 
     def create(self, data: dict) -> int:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
 
         status = (data.get("status") or "Novo Lead").strip() or "Novo Lead"
@@ -140,23 +140,30 @@ class SqliteLeadRepository(LeadRepository):
         conn.close()
         return lead_id
 
+    def has_sales(self, lead_id: int) -> bool:
+        from contextlib import closing
+        with closing(get_db_connection(DB_PATH)) as conn:
+            return conn.execute('SELECT 1 FROM pedidos WHERE lead_id = ? LIMIT 1', (lead_id,)).fetchone() is not None
+
     def update_status(self, lead_id: int, novo_status: str) -> bool:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
         c.execute(
             "UPDATE leads SET status = ? WHERE id = ?",
             (novo_status, lead_id),
         )
-        
+
+        affected = c.rowcount
+        if novo_status not in ('Sem interesse', 'Descartado', 'Já tem consultor atendendo'):
+            c.execute('UPDATE prospeccao_temp SET arquivado = 1 WHERE convertido_lead_id = ?', (lead_id,))
         # Se for sem interesse, limpa as datas de retorno futuras para sair do agendamento
-        if novo_status == "Sem interesse":
+        if novo_status in ("Sem interesse", "Descartado", "Já tem consultor atendendo"):
             c.execute(
-                "UPDATE contatos SET data_retorno = NULL, hora_retorno = NULL WHERE lead_id = ?",
+                "UPDATE contatos SET retorno_encerrado = 1 WHERE lead_id = ?",
                 (lead_id,),
             )
-            
+
         conn.commit()
-        affected = c.rowcount
         conn.close()
         return affected > 0
 
@@ -169,8 +176,9 @@ class SqliteLeadRepository(LeadRepository):
         data_retorno: str | None = None,
         hora_retorno: str | None = None,
     ) -> bool:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
+        c.execute('UPDATE contatos SET retorno_encerrado = 1 WHERE lead_id = ?', (lead_id,))
         c.execute(
             """
             INSERT INTO contatos (lead_id, tipo_contato, resultado, observacao, data_retorno, hora_retorno)
@@ -183,7 +191,7 @@ class SqliteLeadRepository(LeadRepository):
         return True
 
     def get_retornos_agendados(self, data: str, mostrar_todos: bool = False) -> list[dict]:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -193,7 +201,7 @@ class SqliteLeadRepository(LeadRepository):
                 SELECT c2.*, l.nome_loja as lead_nome, l.cidade, l.estado, l.telefone, l.whatsapp
                 FROM contatos c2
                 JOIN leads l ON c2.lead_id = l.id
-                WHERE c2.data_retorno IS NOT NULL
+                WHERE c2.data_retorno IS NOT NULL AND c2.retorno_encerrado = 0
                 ORDER BY c2.data_retorno, c2.hora_retorno
             """
             )
@@ -203,7 +211,7 @@ class SqliteLeadRepository(LeadRepository):
                 SELECT c2.*, l.nome_loja as lead_nome, l.cidade, l.estado, l.telefone, l.whatsapp
                 FROM contatos c2
                 JOIN leads l ON c2.lead_id = l.id
-                WHERE c2.data_retorno = ?
+                WHERE c2.retorno_encerrado = 0 AND c2.data_retorno = ?
                 ORDER BY c2.hora_retorno
             """,
                 (data,),
@@ -214,7 +222,7 @@ class SqliteLeadRepository(LeadRepository):
         return [dict(row) for row in rows]
 
     def get_retornos_atrasados(self, data_ref: str) -> list[dict]:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -234,12 +242,12 @@ class SqliteLeadRepository(LeadRepository):
         return [dict(row) for row in rows]
 
     def update(self, lead_id: int, data: dict) -> bool:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
-        
+
         campos = []
         valores = []
-        
+
         # Mapear campos permitidos para atualização
         mapping = {
             'nome_loja': 'nome_loja',
@@ -254,24 +262,24 @@ class SqliteLeadRepository(LeadRepository):
             'site': 'site',
             'observacoes': 'observacoes'
         }
-        
+
         for key, col in mapping.items():
             if key in data:
                 val = data[key]
                 # Normalização simples se for string
                 if isinstance(val, str):
                     val = val.strip() or None
-                
+
                 campos.append(f"{col} = ?")
                 valores.append(val)
-                
+
         if not campos:
             conn.close()
             return False
-            
+
         valores.append(lead_id)
         sql = f"UPDATE leads SET {', '.join(campos)} WHERE id = ?"
-        
+
         c.execute(sql, tuple(valores))
         conn.commit()
         affected = c.rowcount
@@ -280,7 +288,7 @@ class SqliteLeadRepository(LeadRepository):
 
     def devolver_para_prospeccao(self, lead_id: int) -> bool:
         """Devolve lead para prospecção: desarquiva a prospecção original e atualiza status."""
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
 
         # Buscar a prospecção original que gerou este lead
@@ -297,7 +305,7 @@ class SqliteLeadRepository(LeadRepository):
 
         # Desarquivar e atualizar status da prospecção
         c.execute(
-            "UPDATE prospeccao_temp SET arquivado = 0, status_prospeccao = 'Sem interesse', convertido_lead_id = NULL WHERE id = ?",
+            "UPDATE prospeccao_temp SET arquivado = 0, status_prospeccao = 'Sem interesse', data_retorno = NULL, hora_retorno = NULL WHERE id = ?",
             (prospeccao_id,),
         )
 
@@ -319,7 +327,7 @@ class SqliteLeadRepository(LeadRepository):
         telefone: str | None = None,
         whatsapp: str | None = None,
     ) -> bool:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection(DB_PATH)
         c = conn.cursor()
 
         updates = []

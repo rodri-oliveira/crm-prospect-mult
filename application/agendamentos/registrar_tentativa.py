@@ -45,7 +45,14 @@ def registrar_tentativa_with_repo(
     agendamentos_repo: AgendamentosRepository,
     prospeccao_repo: ProspeccaoRepository,
 ) -> RegistrarTentativaResult:
-    resultado = req.resultado
+    from application.shared.workflow import canonical_status, validate_schedule
+    try:
+        resultado = canonical_status(req.resultado)
+        if resultado == 'Pediu para retornar':
+            resultado = 'Agendar retorno'
+        validate_schedule(req.data_retorno, req.hora_retorno, resultado in ('Agendar retorno', 'Não analisou ainda o material'))
+    except ValueError as error:
+        return RegistrarTentativaResult(False, 'agendamentos_view', {'erro': str(error)})
 
     # Validações
     if not resultado:
@@ -56,7 +63,6 @@ def registrar_tentativa_with_repo(
         )
 
     resultados_tentativa = ("Não atendeu", "Caixa postal", "Sem contato")
-    resultados_proximo_passo = ("Em negociação", "Agendar retorno", "Pediu preço", "Não analisou ainda o material")
     resultados_com_observacao_obrigatoria = ("Em negociação", "Pediu preço", "Não analisou ainda o material")
     resultados_status = (
         "Solicitou portfólio",
@@ -75,13 +81,13 @@ def registrar_tentativa_with_repo(
             redirect_kwargs={"erro": "Observação obrigatória para registrar o próximo passo."},
         )
 
-    if resultado in ("Em negociação", "Agendar retorno", "Não analisou ainda o material") and not req.data_retorno:
+    if resultado in ("Agendar retorno", "Não analisou ainda o material") and not req.data_retorno:
         return RegistrarTentativaResult(
             ok=False,
             redirect_to="agendamentos_view",
             redirect_kwargs={"erro": "Informe a data de retorno para continuar."},
         )
-    if resultado in ("Em negociação", "Agendar retorno", "Não analisou ainda o material") and req.data_retorno and not req.hora_retorno:
+    if resultado in ("Agendar retorno", "Não analisou ainda o material") and req.data_retorno and not req.hora_retorno:
         return RegistrarTentativaResult(
             ok=False,
             redirect_to="agendamentos_view",
@@ -139,27 +145,10 @@ def registrar_tentativa_with_repo(
         )
 
     if resultado == "Interessado":
-        prospeccao_repo.update_status(
-            req.prospeccao_id,
-            "Interessado",
-            observacao=req.observacao,
-            clear_retorno=True,
-        )
-        agendamentos_repo.registrar_resultado_retorno(req.prospeccao_id, "Interessado", observacao=req.observacao)
-        if req.pos_acao == "converter":
-            lead_id = prospeccao_repo.converter_para_lead(req.prospeccao_id)
-            if lead_id:
-                return RegistrarTentativaResult(
-                    ok=True,
-                    redirect_to="lead_detail",
-                    redirect_kwargs={"lead_id": lead_id},
-                )
-        # Redirecionar para leads quando status for Interessado
-        return RegistrarTentativaResult(
-            ok=True,
-            redirect_to="leads_view",
-            redirect_kwargs={},
-        )
+        from application.prospeccao.update_status import UpdateProspecctionStatusRequest, update_prospecction_status_with_repo
+        converted = update_prospecction_status_with_repo(
+            UpdateProspecctionStatusRequest(req.prospeccao_id, 'Interessado', req.observacao, None, None), prospeccao_repo)
+        return RegistrarTentativaResult(converted.ok, converted.redirect_to, converted.redirect_kwargs)
 
     if resultado in resultados_status:
         prospeccao_repo.update_status(
@@ -190,21 +179,15 @@ def registrar_tentativa_with_repo(
         )
 
     if resultado == "Em negociação":
-        prospeccao_repo.update_status(
-            req.prospeccao_id,
-            "Em negociação",
-            observacao=req.observacao,
-            data_retorno=req.data_retorno,
-            hora_retorno=req.hora_retorno,
-        )
-        agendamentos_repo.registrar_resultado_retorno(req.prospeccao_id, resultado, observacao=req.observacao)
-        return RegistrarTentativaResult(
-            ok=True,
-            redirect_to="agendamentos_view",
-            redirect_kwargs={},
-        )
+        from application.prospeccao.update_status import UpdateProspecctionStatusRequest, update_prospecction_status_with_repo
+        converted = update_prospecction_status_with_repo(
+            UpdateProspecctionStatusRequest(req.prospeccao_id, resultado, req.observacao, req.data_retorno, req.hora_retorno), prospeccao_repo)
+        return RegistrarTentativaResult(converted.ok, converted.redirect_to, converted.redirect_kwargs)
 
     if resultado == "Pediu preço":
+        prospeccao_repo.update_status(req.prospeccao_id, resultado, observacao=req.observacao,
+                                    data_retorno=req.data_retorno, hora_retorno=req.hora_retorno,
+                                    clear_retorno=not bool(req.data_retorno))
         agendamentos_repo.registrar_resultado_retorno(req.prospeccao_id, "Pediu preço", observacao=req.observacao)
         return RegistrarTentativaResult(
             ok=True,

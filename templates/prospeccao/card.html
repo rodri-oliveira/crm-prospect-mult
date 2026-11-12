@@ -1,0 +1,174 @@
+<div class="border border-gray-200 rounded-lg p-3 {% if item.arquivado %}bg-gray-50 opacity-75{% else %}bg-white{% endif %}">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">{{ item.nome_loja }}</h4>
+                                    <p class="text-sm text-gray-500">
+                                        {{ item.cidade }} {% if item.estado %}- {{ item.estado }}{% endif %}
+                                        {% if item.maps_url %}
+                                        <a href="{{ item.maps_url }}" target="_blank" class="ml-1 text-brand-500 hover:text-brand-700" title="Ver no Google Maps">
+                                            📍
+                                        </a>
+                                        {% endif %}
+                                    </p>
+
+                                    {% if item.segmento %}
+                                    <span class="inline-block mt-1 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">{{ item.segmento }}</span>
+                                    {% endif %}
+                                    <div class="flex items-center gap-1.5 mt-1.5 py-1 px-2 bg-gray-50 rounded border border-gray-100 w-fit">
+                                        <span class="text-[10px] text-gray-400 uppercase font-bold">Contato:</span>
+                                        <span class="text-[10px] font-bold text-gray-600">{{ item.data_prospeccao }}</span>
+                                    </div>
+                                </div>
+                                {% set status_options = [
+                                    ('Não contatado', 'bg-gray-50 text-gray-600 border-gray-200'),
+                                    ('Não atendeu', 'bg-red-50 text-red-700 border-red-100'),
+                                    ('Caixa postal', 'bg-gray-50 text-gray-700 border-gray-100'),
+                                    ('Enviado Portfólio Whats', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
+                                    ('Enviado Portfólio por E-mail', 'bg-teal-50 text-teal-700 border-teal-100'),
+                                    ('Não analisou ainda o material', 'bg-amber-50 text-amber-700 border-amber-100'),
+                                    ('Agendamento', 'bg-yellow-50 text-yellow-700 border-yellow-100'),
+                                    ('Pediu para retornar', 'bg-yellow-50 text-yellow-700 border-yellow-100'),
+                                    ('Solicitou portfólio', 'bg-blue-50 text-blue-700 border-blue-100'),
+                                    ('Portfólio', 'bg-blue-50 text-blue-700 border-blue-100'),
+                                    ('Em negociação', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
+                                    ('Negociação', 'bg-indigo-50 text-indigo-700 border-indigo-100'),
+                                    ('Interessado', 'bg-green-50 text-green-700 border-green-100'),
+                                    ('Tem consultor', 'bg-orange-50 text-orange-700 border-orange-100'),
+                                    ('Já tem consultor atendendo', 'bg-orange-50 text-orange-700 border-orange-100'),
+                                    ('Sem interesse', 'bg-gray-100 text-gray-700 border-gray-200'),
+                                    ('Descartado', 'bg-red-50 text-red-600 border-red-100'),
+                                    ('Aguard. Lista Prod.', 'bg-amber-50 text-amber-700 border-amber-100'),
+                                    ('Convertido em Lead', 'bg-purple-50 text-purple-700 border-purple-100')
+                                ] %}
+                                {% set badge_class = 'bg-gray-100 text-gray-600 border-gray-200' %}
+                                {% set display_status = item.status_prospeccao %}
+                                {% for status, classes in status_options %}
+                                    {% if item.status_prospeccao == status %}
+                                        {% set badge_class = classes %}
+                                        {% if status == 'Pediu para retornar' %}{% set display_status = 'Agendamento' %}{% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                <span class="px-2 py-1 rounded-full text-xs font-medium border {{ badge_class }}">
+                                    {{ display_status }}
+                                </span>
+                            </div>
+
+                            {% if item.telefone %}
+                            <div class="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                                <span>📞 {{ item.telefone }}</span>
+                                {% set clean_tel = item.telefone|replace('(', '')|replace(')', '')|replace(' ', '')|replace('-', '') %}
+                                {% if clean_tel|length >= 10 %}
+                                    {% set first_digit = clean_tel[2:3] %}
+                                    {% if first_digit in ['2', '3', '4', '5'] %}
+                                        <span class="text-[9px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 uppercase">Fixo</span>
+                                    {% elif first_digit == '9' %}
+                                        <span class="text-[9px] font-bold bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100 uppercase">Celular</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            {% if item.cnpj %}
+                            <div class="flex items-center gap-2 text-[11px] text-gray-500 mb-2">
+                                <span class="font-bold">CNPJ:</span> {{ item.cnpj }}
+                            </div>
+                            {% endif %}
+
+                            {% if item.whatsapp %}
+                            <div class="flex items-center gap-2 text-sm text-green-600 mb-1">
+                                <a href="https://wa.me/55{{ item.whatsapp|replace(' ', '')|replace('-', '')|replace('(', '')|replace(')', '') }}?text=Olá {{ item.responsavel or '' }}, aqui é o Rodrigo da Multi" target="_blank" class="flex items-center gap-1 hover:underline font-bold">
+                                    <span>WhatsApp: {{ item.whatsapp }}</span>
+                                 </a>
+                            </div>
+                            {% endif %}
+
+
+
+                            {% if item.data_retorno %}
+                            <div class="text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded mb-2">
+                                📅 Retornar em: {{ item.data_retorno }}
+                            </div>
+                            {% endif %}
+
+
+
+                            <!-- Formulário para adicionar/editar observação -->
+                            <form action="/prospeccao/rascunho/{{ item.id }}/observacao" method="POST" class="mb-2">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
+                                <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
+                                <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
+                                <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
+                                <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
+                                <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
+                                <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
+                                <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
+                                <div class="grid grid-cols-2 gap-2 mb-2">
+                                    <div>
+                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Telefone</label>
+                                        <input type="text" name="telefone" value="{{ item.telefone or '' }}"
+                                               placeholder="Telefone"
+                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">WhatsApp</label>
+                                        <input type="text" name="whatsapp" value="{{ item.whatsapp or '' }}"
+                                               placeholder="WhatsApp"
+                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
+                                    </div>
+                                    <div class="col-span-2 grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Responsável</label>
+                                            <input type="text" name="responsavel" value="{{ item.responsavel or '' }}"
+                                                   placeholder="Responsável"
+                                                   class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Email</label>
+                                            <input type="email" name="email" value="{{ item.email or '' }}"
+                                                   placeholder="E-mail"
+                                                   class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-1">
+                                    <div class="flex-1">
+                                        <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Observação</label>
+                                        <input type="text" name="observacao" value="{{ item.observacao or '' }}"
+                                               placeholder="Atualizar observação..."
+                                               class="w-full text-xs rounded border-gray-300 px-2 py-1 focus:border-brand-500 focus:ring-brand-500">
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button type="submit" class="px-4 py-1.5 text-xs font-bold rounded bg-brand-600 text-white hover:bg-brand-700 shadow-sm transition-all active:scale-95">Salvar</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <!-- Box de Ações e Status -->
+                            {% include 'prospeccao/card_actions.html' %}
+
+
+
+                            <!-- Histórico de Eventos (colapsável) -->
+                            {% if item.eventos %}
+                            <div class="mt-2 pt-2 border-t border-gray-100" x-data="{ open: false }">
+                                <button type="button" @click="open = !open" class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700">
+                                    <svg class="w-4 h-4 transition" :class="{ 'rotate-90': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span>Histórico ({{ item.eventos|length }})</span>
+                                </button>
+                                <div x-show="open" x-collapse class="mt-2 space-y-1">
+                                    {% for evento in item.eventos %}
+                                    <div class="flex items-start gap-2 text-[10px] p-2 bg-gray-50 rounded border-b border-gray-100 last:border-0">
+                                        <span class="text-gray-400 font-mono whitespace-nowrap mt-0.5">{{ evento.data_evento[:16] }}</span>
+                                        <span class="text-gray-600">
+                                            {% if evento.tipo_evento == 'STATUS_CHANGE' %}🔵{% else %}📝{% endif %}
+                                            {{ evento.detalhe }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>

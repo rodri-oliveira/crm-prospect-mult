@@ -1,0 +1,46 @@
+<div id="mapsDrawer" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
+    <div id="mapsOverlay" class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute right-0 top-0 h-full w-full max-w-2xl bg-white shadow-2xl border-l border-gray-200 flex flex-col">
+        <div class="px-5 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+            <div>
+                <h3 class="text-base font-semibold text-gray-900">Resultados do Maps (beta)</h3>
+                <p id="mapsDrawerSub" class="text-xs text-gray-500 mt-0.5"></p>
+            </div>
+            <button type="button" id="mapsDrawerClose" class="px-3 py-1.5 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-medium">Fechar</button>
+        </div>
+
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div class="text-xs text-gray-600" id="mapsDrawerStatus">Pronto.</div>
+            <div class="flex items-center gap-3">
+                <div id="mapsDrawerStats" class="text-xs text-gray-500 hidden">
+                    <span id="mapsStatsUnique">0</span> únicas
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500">
+                    <button type="button" id="mapsPagePrev" class="px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                    <span id="mapsPageInfo">Página 1 de 1</span>
+                    <button type="button" id="mapsPageNext" class="px-2 py-1 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Próxima</button>
+                    <select id="mapsPageSize" class="px-2 py-1 rounded-md border border-gray-300 bg-white text-gray-700">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span id="mapsPageRange">Mostrando 0-0 de 0</span>
+                </div>
+                <button type="button" id="mapsDrawerReload" class="px-3 py-1.5 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-xs font-medium">Atualizar</button>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4">
+            <div id="mapsResults" class="space-y-2"></div>
+            <div id="mapsEmpty" class="hidden text-center py-10">
+                <p class="text-sm text-gray-500">Nenhum resultado.</p>
+                <p class="text-xs text-gray-400 mt-1">Clique em Atualizar ou refine o filtro.</p>
+            </div>
+        </div>
+
+        <div class="px-5 py-3 border-t border-gray-200 bg-white flex items-center justify-end gap-2">
+            <button type="button" id="mapsAddSelected" class="px-4 py-2 rounded-md bg-brand-600 text-white hover:bg-brand-700 text-sm font-medium">Adicionar selecionados</button>
+            <button type="button" id="mapsUseSelected" class="px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900 text-sm font-medium">Usar selecionado</button>
+        </div>
+    </div>
+</div>

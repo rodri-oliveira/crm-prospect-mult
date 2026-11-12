@@ -1,3 +1,8 @@
+import { renderResults } from './maps-renderer.js';
+export { renderResults } from './maps-renderer.js';
+import { pagination } from './maps-pagination.js';
+import { deriveMapsKey, mapsLog } from './maps-utils.js';
+import { useItem } from './maps-item-form.js';
 /**
  * Módulo de resultados do Maps
  * Gerencia renderização e carregamento de resultados da API
@@ -6,341 +11,9 @@
 import { writeMapsCache, readMapsCache, clearMapsCache, buildQueryPayload, getLastMapsItems, setLastMapsItems, removeItemByKey } from './maps-cache.js';
 import { closeDrawer } from './maps-drawer.js';
 import { submitLeadFormAsJsonIfFromMaps } from './form.js';
-import { updateBtnBuscarCnpjGoogle } from './maps-search.js';
 
-const DEFAULT_PAGE_SIZE = 50;
-let currentPage = 1;
-let pageSize = DEFAULT_PAGE_SIZE;
 
-/**
- * Atualiza o selo de telefone (Fixo/Celular)
- */
-const updatePhoneBadge = (tel) => {
-    const badge = document.getElementById('f_telefone_badge');
-    if (!badge) return;
-    if (!tel) {
-        badge.classList.add('hidden');
-        badge.innerHTML = '';
-        return;
-    }
-    const clean = tel.replace(/\D/g, '');
-    const hasDDD = clean.length >= 10;
-    const first = hasDDD ? clean.charAt(2) : clean.charAt(0);
-    
-    badge.classList.remove('hidden', 'text-brand-700', 'bg-brand-50', 'border-brand-100', 'text-gray-600', 'bg-gray-100', 'border-gray-200');
-    badge.className = 'text-[9px] font-bold px-1.5 py-0.5 rounded border ';
 
-    if (['2','3','4','5'].includes(first)) {
-        badge.textContent = '📞 FIXO';
-        badge.classList.add('text-brand-700', 'bg-brand-50', 'border-brand-100');
-        badge.classList.remove('hidden');
-    } else if (first === '9') {
-        badge.textContent = '📱 CELULAR';
-        badge.classList.add('text-gray-600', 'bg-gray-100', 'border-gray-200');
-        badge.classList.remove('hidden');
-    } else {
-        badge.classList.add('hidden');
-    }
-};
-
-const deriveMapsKey = (mapsUrl, mapsPlaceId, id) => {
-    const url = String(mapsUrl || '').trim();
-    if (url) {
-        try {
-            const u = new URL(url);
-            const cid = u.searchParams.get('cid');
-            if (cid && /^\d+$/.test(cid)) {
-                return `cid:${cid}`;
-            }
-        } catch (e) {}
-        const m = url.match(/(0x[0-9a-fA-F]+:0x[0-9a-fA-F]+)/);
-        if (m && m[1]) {
-            return `ftid:${m[1].toLowerCase()}`;
-        }
-    }
-    const k = String(mapsPlaceId || id || '').trim();
-    return k;
-};
-
-/**
- * Log de debug
- */
-const mapsLog = (event, data) => {
-    try {
-        if (!window.MAPS_DEBUG) return;
-        console.log(`[MAPS_DEBUG] ${event}`, data || {});
-    } catch (e) {}
-};
-
-/**
- * Renderiza resultados no drawer
- */
-export const renderResults = (items) => {
-    const resultsNow = document.getElementById('mapsResults');
-    const emptyNow = document.getElementById('mapsEmpty');
-    if (!resultsNow || !emptyNow) {
-        mapsLog('renderResults:missing_elements', { hasResultsEl: !!resultsNow, hasEmptyEl: !!emptyNow });
-        return;
-    }
-    resultsNow.innerHTML = '';
-    const list = Array.isArray(items) ? items : [];
-    // Mantém todos os itens, mesmo os já adicionados, para que apareçam como desativados
-    const normalized = list.map((it) => {
-        const key = deriveMapsKey(it.maps_url, it.maps_place_id, it.id);
-        const already = !!it.already_added;
-        return { ...it, __key: key, __already: already };
-    });
-
-    setLastMapsItems(normalized);
-    const paging = _getPagedItems(normalized);
-    _updatePaginationUI(paging);
-
-    if (normalized.length === 0) {
-        emptyNow.classList.remove('hidden');
-        return;
-    }
-    emptyNow.classList.add('hidden');
-
-    paging.items.forEach((it) => {
-        const card = document.createElement('div');
-        card.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50';
-        card.dataset.id = it.id || '';
-
-        const nome = it.nome || '';
-        const endereco = it.endereco || '';
-        const telefone = it.telefone || '';
-        const website = it.website || '';
-        const mapsUrl = it.maps_url || '';
-        const already = !!it.__already;
-        const segmentos = Array.isArray(it.segmentos) ? it.segmentos.join(', ') : '';
-
-        const websiteHref = (website && (website.startsWith('http://') || website.startsWith('https://')))
-            ? website
-            : (website ? `https://${website}` : '');
-
-        card.innerHTML = `
-            <div class="flex items-start justify-between gap-4 p-1">
-                <label class="flex items-start gap-3 flex-1 cursor-pointer group/label">
-                    <div class="pt-1">
-                        <input type="checkbox" name="mapsPick" value="${(it.id || '').replace(/"/g, '')}" class="rounded-full border-gray-300 text-brand-600 focus:ring-brand-500 w-4 h-4 transition-all group-hover/label:border-brand-400" ${already ? 'disabled' : ''}>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="text-sm font-bold text-gray-900 group-hover/label:text-brand-700 transition-colors truncate">${nome}</div>
-                        <div class="text-[11px] leading-relaxed text-gray-500 mt-0.5 line-clamp-1">${endereco || '-'}</div>
-                        
-                         <div class="flex flex-wrap items-center gap-x-2 mt-1.5">
-                            ${segmentos ? `
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] font-medium border border-gray-200">
-                                    ${segmentos}
-                                </span>
-                            ` : ''}
-                            ${telefone ? (function(tel){
-                                const clean = tel.replace(/\D/g, '');
-                                const hasDDD = clean.length >= 10;
-                                const first = hasDDD ? clean.charAt(2) : clean.charAt(0);
-                                let badge = '';
-                                if (['2','3','4','5'].includes(first)) {
-                                    badge = `<span class="text-[9px] font-bold text-brand-700 bg-brand-50 border border-brand-100 px-1 py-0.5 rounded mr-1">📞 FIXO</span>`;
-                                } else if (first === '9') {
-                                    badge = `<span class="text-[9px] font-bold text-gray-600 bg-gray-100 border border-gray-200 px-1 py-0.5 rounded mr-1">📱 CELULAR</span>`;
-                                }
-                                return `<span class="text-[11px] text-gray-400 flex items-center">${badge}${tel}</span>`;
-                            })(telefone) : ''}
-                        </div>
-                        
-                        ${website ? `
-                            <div class="mt-1">
-                                <a href="${websiteHref}" target="_blank" class="text-[11px] text-brand-600 hover:text-brand-800 flex items-center gap-1 transition-colors">
-                                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                                    ${website.length > 30 ? website.substring(0, 27) + '...' : website}
-                                </a>
-                            </div>
-                        ` : ''}
-                        
-                        ${already ? '<div class="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded mt-1.5">✓ Já adicionado ' + (it.existing_status ? '(' + it.existing_status + ')' : '') + '</div>' : ''}
-                    </div>
-                </label>
-                
-                <div class="flex flex-col gap-2 items-end shrink-0">
-                    <div class="flex items-center gap-1">
-                        ${mapsUrl ? `
-                            <a href="${mapsUrl}" target="_blank" class="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-all" title="Ver no Google Maps">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                            </a>
-                        ` : ''}
-                        <button type="button" class="btnDeleteItem p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Remover da lista">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                    <button type="button" class="btnUseOne text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-black hover:scale-105 transition-all shadow-sm active:scale-95">
-                        Usar
-                    </button>
-                </div>
-            </div>
-        `;
-
-        const useBtn = card.querySelector('.btnUseOne');
-        if (useBtn) {
-            useBtn.addEventListener('click', () => {
-                useItem(it);
-            });
-        }
-
-        const deleteBtn = card.querySelector('.btnDeleteItem');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (confirm(`Remover "${nome}" desta lista?`)) {
-                    const key = it.__key;
-                    removeItemByKey(key);
-                    renderResults(getLastMapsItems());
-                }
-            });
-        }
-
-        resultsNow.appendChild(card);
-    });
-};
-
-/**
- * Usa um item (preenche formulário)
- */
-const useItem = async (it) => {
-    const form = document.getElementById('formLead');
-    if (!form) return;
-
-    const setVal = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
-        if (id === 'f_site') {
-            try { updateSiteLink(); } catch (e) {}
-        }
-    };
-
-    const updateSiteLink = () => {
-        const input = document.getElementById('f_site');
-        const btn = document.getElementById('f_site_btn');
-        if (!input || !btn) return;
-
-        const normalizeWebsite = (value) => {
-            const raw = String(value || '').trim();
-            if (!raw) return '';
-            const cleaned = raw.replace(/\s+/g, ' ').trim();
-            const urlMatch = cleaned.match(/(https?:\/\/[^\s]+)/i);
-            if (urlMatch && urlMatch[1]) return urlMatch[1].trim();
-            const domainMatch = cleaned.match(/([a-z0-9][a-z0-9\-.]+\.[a-z]{2,})(\/[^\s]*)?/i);
-            if (domainMatch && domainMatch[0]) return domainMatch[0].trim();
-            return cleaned.replace(/^[^a-z0-9]+/i, '').trim();
-        };
-
-        const normalized = normalizeWebsite(input.value);
-        if (!normalized) {
-            btn.classList.add('hidden');
-            btn.onclick = null;
-            return;
-        }
-
-        const href = (normalized.startsWith('http://') || normalized.startsWith('https://')) ? normalized : `https://${normalized}`;
-        btn.classList.remove('hidden');
-        btn.onclick = () => {
-            // Usar globalThis.open para evitar conflito com sandbox/extensões
-            const opener = typeof globalThis !== 'undefined' ? globalThis.open : window.open;
-            if (typeof opener === 'function') {
-                opener(href, '_blank', 'noopener,noreferrer');
-            } else {
-                // Fallback: criar link e clicar
-                const a = document.createElement('a');
-                a.href = href;
-                a.target = '_blank';
-                a.rel = 'noopener,noreferrer';
-                a.click();
-            }
-        };
-    };
-
-    const currentKey = String(it.maps_place_id || it.id || '').trim();
-    window.__mapsUseCurrentKey = currentKey;
-
-    let enriched = it;
-    setVal('f_nome', enriched.nome || '');
-    setVal('f_endereco', enriched.endereco || '');
-    setVal('f_telefone', enriched.telefone || '');
-    setVal('f_whatsapp', enriched.whatsapp || enriched.telefone || '');
-    setVal('f_email', enriched.email || '');
-    setVal('f_site', enriched.website || enriched.site || '');
-    setVal('f_maps_place_id', enriched.maps_place_id || enriched.id || '');
-    setVal('f_maps_url', enriched.maps_url || '');
-    setVal('f_cidade', it.cidade || (document.getElementById('mapCidade')?.value || ''));
-    setVal('f_estado', it.estado || (document.getElementById('mapEstado')?.value || ''));
-
-    // Atualiza badge de telefone
-    updatePhoneBadge(enriched.telefone || '');
-    const inputTel = document.getElementById('f_telefone');
-    if (inputTel) {
-        inputTel.oninput = (e) => updatePhoneBadge(e.target.value);
-    }
-
-    try {
-        const inputSite = document.getElementById('f_site');
-        if (inputSite) inputSite.addEventListener('input', updateSiteLink);
-        updateSiteLink();
-    } catch (e) {}
-
-    try { updateBtnBuscarCnpjGoogle(); } catch (e) {}
-
-    const checks = form.querySelectorAll('input[name="segmento"]');
-    if (checks && enriched.segmentos && Array.isArray(enriched.segmentos)) {
-        checks.forEach((el) => {
-            el.checked = enriched.segmentos.includes(el.value);
-        });
-    }
-
-    const statusEl = document.getElementById('mapsDrawerStatus');
-    const needsDetails = (!enriched.website) && !!enriched.maps_url;
-    if (needsDetails) {
-        try {
-            if (statusEl) statusEl.textContent = 'Buscando detalhes...';
-            fetch('/api/maps/detalhe', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ maps_url: enriched.maps_url })
-            })
-                .then(async (resp) => ({ ok: resp.ok, data: await resp.json().catch(() => null) }))
-                .then(({ ok, data }) => {
-                    if (window.__mapsUseCurrentKey !== currentKey) return;
-                    if (!ok || !data || !data.ok || !data.item) return;
-                    const d = data.item;
-                    if (d.endereco) setVal('f_endereco', d.endereco);
-                    if (d.telefone) {
-                        setVal('f_telefone', d.telefone);
-                        const curWa = (document.getElementById('f_whatsapp')?.value || '').trim();
-                        if (!curWa) setVal('f_whatsapp', d.telefone);
-                    }
-                    if (d.website) setVal('f_site', d.website);
-                    if (statusEl) statusEl.textContent = 'OK';
-                    try { updateBtnBuscarCnpjGoogle(); } catch (e) {}
-                })
-                .catch(() => {});
-        } catch (e) {}
-    }
-
-    // Fecha o drawer para revelar o formulário
-    try {
-        window.__mapsResultsCache = Array.isArray(getLastMapsItems()) ? getLastMapsItems() : [];
-        window.__mapsLastPayloadCache = buildQueryPayload();
-    } catch (e) {}
-    closeDrawer();
-};
-
-/**
- * Carrega resultados da API
- */
 export const loadResults = async () => {
     const statusEl = document.getElementById('mapsDrawerStatus');
     const subEl = document.getElementById('mapsDrawerSub');
@@ -355,7 +28,7 @@ export const loadResults = async () => {
 
     statusEl.textContent = 'Carregando...';
     if (statsEl) statsEl.classList.add('hidden');
-    
+
     try {
         const params = new URLSearchParams();
         if (query) params.set('query', query);
@@ -366,7 +39,7 @@ export const loadResults = async () => {
         const resp = await fetch(`/api/maps/resultados?${params.toString()}`);
         const data = await resp.json();
         if (!resp.ok || !data.ok) throw new Error(data.message || 'Erro');
-        
+
         // Atualizar status e estatísticas
         const totalQueries = (data.executed_queries || []).length;
         const mergedBefore = data.merged_before_dedupe || 0;
@@ -388,7 +61,7 @@ export const loadResults = async () => {
         } else {
             statusEl.textContent = data.modo === 'mock' ? 'Modo: mock' : `OK - ${totalQueries} queries`;
         }
-        
+
         // Alinhar "Abrir no Google Maps" com a query principal executada
         if (Array.isArray(data.executed_queries) && data.executed_queries.length > 0) {
             const primaryQuery = data.executed_queries[0];
@@ -420,18 +93,18 @@ export const loadResults = async () => {
                 mapFrame.src = `https://www.google.com/maps?q=${encodeURIComponent(primaryQuery)}&output=embed`;
             }
         }
-        
+
         // Mostrar estatísticas de lojas únicas
         if (statsEl && statsUniqueEl && mergedAfter > 0) {
             statsUniqueEl.textContent = mergedAfter;
             statsEl.classList.remove('hidden');
             statsEl.title = `${mergedBefore} encontradas, ${mergedAfter} únicas após deduplicação`;
         }
-        
+
         mapsLog('loadResults:success', { modo: data.modo, items: (data.items || []).length, mergedBefore, mergedAfter, totalQueries });
         const nextItems = Array.isArray(data.items) ? data.items : [];
         // Não filtramos mais os itens já adicionados, deixamos a UI mostrar eles desabilitados
-        
+
         if (data.modo !== 'mock') {
             if (mergedAfter > 0) {
                 // Conta quantos são novos apenas para mostrar no status
@@ -441,20 +114,10 @@ export const loadResults = async () => {
                 statusEl.textContent = `OK - ${totalQueries} queries`;
             }
         }
-        const currentCached = (window.ProspeccaoState && typeof window.ProspeccaoState.getMapItems === 'function')
-            ? window.ProspeccaoState.getMapItems()
-            : (Array.isArray(window.__mapsResultsCache) ? window.__mapsResultsCache : []);
-        const shouldPreserve = nextItems.length === 0 && Array.isArray(currentCached) && currentCached.length > 0;
-        if (!shouldPreserve) {
-            writeMapsCache(nextItems, buildQueryPayload());
-            currentPage = 1;
-            renderResults(nextItems);
-        } else {
-            try { readMapsCache(); } catch (e) {}
-            statusEl.textContent = '0 resultados. Mantendo últimos resultados.';
-            currentPage = 1;
-            renderResults(currentCached);
-        }
+        // A zero-result search is shown as empty; never reuse another city's contacts.
+        writeMapsCache(nextItems, buildQueryPayload());
+        pagination.currentPage = 1;
+        renderResults(nextItems);
         try {
             if (window.ProspeccaoState && typeof window.ProspeccaoState.save === 'function') {
                 window.ProspeccaoState.save({ mapsSearchPending: false });
@@ -464,15 +127,8 @@ export const loadResults = async () => {
         } catch (e) {}
     } catch (e) {
         mapsLog('loadResults:error', { error: String(e && e.message ? e.message : e) });
-        try {
-            const cached = Array.isArray(window.__mapsResultsCache) ? window.__mapsResultsCache : [];
-            if (cached.length > 0) {
-                statusEl.textContent = 'Erro ao buscar. Mantendo últimos resultados.';
-                renderResults(cached);
-                return;
-            }
-        } catch (err) {}
-        statusEl.textContent = 'Erro ao carregar resultados.';
+        clearMapsCache();
+        statusEl.textContent = `Falha na busca: ${String(e?.message || 'Não foi possível carregar os resultados.')}`;
         renderResults([]);
     }
 };
@@ -572,8 +228,8 @@ export function initDrawerButtonListeners() {
     const sizeSel = document.getElementById('mapsPageSize');
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
-            if (currentPage > 1) {
-                currentPage -= 1;
+            if (pagination.currentPage > 1) {
+                pagination.currentPage -= 1;
                 renderResults(getLastMapsItems());
             }
         });
@@ -581,9 +237,9 @@ export function initDrawerButtonListeners() {
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
             const total = Array.isArray(getLastMapsItems()) ? getLastMapsItems().length : 0;
-            const totalPages = Math.max(1, Math.ceil(total / pageSize));
-            if (currentPage < totalPages) {
-                currentPage += 1;
+            const totalPages = Math.max(1, Math.ceil(total / pagination.pageSize));
+            if (pagination.currentPage < totalPages) {
+                pagination.currentPage += 1;
                 renderResults(getLastMapsItems());
             }
         });
@@ -592,46 +248,14 @@ export function initDrawerButtonListeners() {
         sizeSel.addEventListener('change', () => {
             const n = parseInt(sizeSel.value, 10);
             if (!Number.isNaN(n) && n > 0) {
-                pageSize = n;
-                currentPage = 1;
+                pagination.pageSize = n;
+                pagination.currentPage = 1;
                 renderResults(getLastMapsItems());
             }
         });
     }
 }
 
-const _getPagedItems = (items) => {
-    const total = Array.isArray(items) ? items.length : 0;
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    if (currentPage > totalPages) currentPage = totalPages;
-    if (currentPage < 1) currentPage = 1;
-    const start = total === 0 ? 0 : (currentPage - 1) * pageSize;
-    const end = total === 0 ? 0 : Math.min(start + pageSize, total);
-    const slice = Array.isArray(items) ? items.slice(start, end) : [];
-    return { total, totalPages, page: currentPage, start, end, items: slice };
-};
-
-const _updatePaginationUI = (paging) => {
-    const infoEl = document.getElementById('mapsPageInfo');
-    const rangeEl = document.getElementById('mapsPageRange');
-    const prevBtn = document.getElementById('mapsPagePrev');
-    const nextBtn = document.getElementById('mapsPageNext');
-    const sizeSel = document.getElementById('mapsPageSize');
-
-    if (infoEl) infoEl.textContent = `Página ${paging.page} de ${paging.totalPages}`;
-    if (rangeEl) {
-        const from = paging.total === 0 ? 0 : (paging.start + 1);
-        const to = paging.end;
-        rangeEl.textContent = `Mostrando ${from}-${to} de ${paging.total}`;
-    }
-    if (prevBtn) prevBtn.disabled = paging.page <= 1;
-    if (nextBtn) nextBtn.disabled = paging.page >= paging.totalPages;
-    if (sizeSel) sizeSel.value = String(pageSize);
-};
-
-/**
- * Obtém itens selecionados
- */
 const getPickedItems = () => {
     const picked = Array.from(document.querySelectorAll('input[name="mapsPick"]:checked'));
     const ids = picked.map((el) => String(el.value || '')).filter(Boolean);
@@ -708,13 +332,13 @@ export function initFormSubmitListener() {
             } catch (e) {}
 
             if (statusEl) statusEl.textContent = 'Adicionado.';
-            
+
             // Limpa cache do drawer e fecha
             try {
                 clearMapsCache();
             } catch (e) {}
             closeDrawer();
-            
+
             // Recarrega apenas a lista de prospecção
             window.location.reload();
         } catch (err) {

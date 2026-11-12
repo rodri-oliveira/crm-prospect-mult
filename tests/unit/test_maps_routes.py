@@ -1,8 +1,8 @@
 from interfaces.api.routes import _default_maps_estado
 
 
-def test_default_maps_estado_assumes_sp_when_city_has_no_state():
-    assert _default_maps_estado("Americana", "") == "SP"
+def test_default_maps_estado_does_not_guess_state_when_city_has_no_state():
+    assert _default_maps_estado("Americana", "") == ""
 
 
 def test_default_maps_estado_keeps_explicit_state_uppercase():
