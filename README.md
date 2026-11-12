@@ -4,7 +4,7 @@ CRM local para prospecção B2B, qualificação, retornos, negociação, vendas 
 
 ## Prospecção sem API paga
 
-- Busca por cidade e UF explícitas, com quatro consultas voltadas a acessórios, periféricos e suprimentos.
+- Busca por cidade e UF explícitas, com descoberta ampla de lojas de informática, suprimentos e periféricos, seguida de qualificação da atividade.
 - Importação CSV com prévia, seleção dos contatos e validação de campos antes da gravação.
 - Duplicados por CNPJ, identificador do Maps ou nome + cidade + UF não sobrescrevem o histórico. CSV considera CNPJ e nome + cidade + UF, incluindo arquivados e leads.
 - Prioridade de revisão baseada em indícios de atividade e disponibilidade de canais. **Não comprova porte, intenção de compra, telefone válido ou WhatsApp ativo.**

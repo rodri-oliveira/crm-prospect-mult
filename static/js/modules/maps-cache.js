@@ -6,6 +6,7 @@
 import { ProspeccaoState } from './state.js';
 
 let lastMapsItems = [];
+export const MAPS_RESULTS_VERSION = '20261112-accessories-recall-2';
 
 /**
  * Log de debug
@@ -51,6 +52,7 @@ const updateMapsCacheStatus = (prefix) => {
  * Escreve cache de resultados
  */
 export const writeMapsCache = (items, payload) => {
+    payload = { ...(payload || {}), resultsVersion: MAPS_RESULTS_VERSION };
     mapsLog('cache:write:start', { items: Array.isArray(items) ? items.length : null, hasPayload: !!payload });
     try {
         window.__mapsResultsCache = Array.isArray(items) ? items : [];
@@ -115,6 +117,11 @@ export const readMapsCache = () => {
             payload = rawPayload ? JSON.parse(rawPayload) : null;
         }
 
+        if (payload?.resultsVersion !== MAPS_RESULTS_VERSION) {
+            clearMapsCache();
+            lastMapsItems = [];
+            return;
+        }
         window.__mapsResultsCache = Array.isArray(items) ? items : [];
         window.__mapsLastPayloadCache = payload || null;
     } catch (e) {}
@@ -162,7 +169,7 @@ export const buildQueryPayload = () => {
     let estado = (document.getElementById('mapEstado')?.value || '').trim();
 
     const query = (window.lastQuery || '').trim();
-    return { segmentosSelecionados, cidade, estado, query };
+    return { segmentosSelecionados, cidade, estado, query, resultsVersion: MAPS_RESULTS_VERSION };
 };
 
 /**

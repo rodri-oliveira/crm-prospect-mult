@@ -10,7 +10,7 @@ import { restoreMapFilters, installPageshowListener } from './filters.js';
 import { searchMap, buscarCNPJNoGoogle, updateBtnBuscarCnpjGoogle } from './maps-search.js';
 import { consultarCNPJ, preencherDadosCNPJ } from './cnpj.js';
 import { initFormListeners, pedirDataRetorno, submitLeadFormAsJsonIfFromMaps } from './form.js';
-import { readMapsCache, writeMapsCache, clearMapsCache } from './maps-cache.js';
+import { readMapsCache, writeMapsCache, clearMapsCache, MAPS_RESULTS_VERSION } from './maps-cache.js';
 import { renderResults, loadResults, initDrawerButtonListeners, initFormSubmitListener } from './maps-results.js';
 
 // Expõe componentes Alpine globalmente
@@ -151,6 +151,7 @@ function restorePendingDrawer() {
         try { sessionStorage.removeItem('mapsDrawerRestore'); } catch (err) {}
     }
 
+    if (pendingRestore?.payload?.resultsVersion !== MAPS_RESULTS_VERSION) pendingRestore = null;
     if (pendingRestore) {
         try {
             const restore = pendingRestore;

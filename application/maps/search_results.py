@@ -160,6 +160,8 @@ def search_maps_results_with_repo(
                 got = scrape_maps_results(q, limit=per_query_limit, headless=True)
                 dt_ms = int((time.time() - t0) * 1000)
 
+                collected_count = len(got or [])
+
                 # Enriquecer itens com segmento e fonte da query (antes dos filtros)
                 for it in (got or []):
                     it.setdefault("categorias", list(it.get("segmentos") or []))
@@ -188,14 +190,14 @@ def search_maps_results_with_repo(
                 # Para drones: filtro leve (só remove aluguel/locação, não bloqueia lojas genéricas)
                 got = _filter_segment_noise(got or [], seg=seg)
 
-                # Filtro conservador: remover itens que declaram outra cidade no nome
-                # Ex: "Loja Zema - Casa Branca" quando o alvo é "Aguaí"
-                if cidade:
-                    got = _filter_items_with_other_city_in_name(got or [], cidade=cidade)
-
-                # Filtro geográfico estrito: remove itens que o scraper identificou como estando em outra cidade
-                if cidade:
-                    got = _filter_strict_city(got or [], cidade=cidade, estado=estado)
+                from application.maps.accessories import is_accessories, filter_accessories_location
+                segment_count = len(got or [])
+                if is_accessories(seg):
+                    got = filter_accessories_location(got or [], cidade, estado)
+                else:
+                    if cidade:
+                        got = _filter_items_with_other_city_in_name(got or [], cidade=cidade)
+                        got = _filter_strict_city(got or [], cidade=cidade, estado=estado)
 
                 # Calcular new_unique APÓS filtros → stats refletem o que realmente entra
                 new_keys: set[str] = set()
@@ -210,17 +212,20 @@ def search_maps_results_with_repo(
                 # Log detalhado com estatísticas e nomes das lojas
                 lojas_nomes = [it.get("nome", "?")[:30] for it in (got or [])[:5]]
                 logger.warning(
-                    "maps_query ms=%s items=%s new_unique=%s total_unique=%s segmento=%s q=%s lojas=%s",
+                    "maps_query ms=%s items=%s new_unique=%s total_unique=%s segmento=%s q=%s lojas=%s collected=%s after_activity=%s after_location=%s",
                     dt_ms,
                     len(got or []),
                     len(new_keys),
                     len(seen_keys_total),
                     seg or "-",
                     q,
-                    lojas_nomes,
+                    lojas_nomes, collected_count, segment_count, len(got or []),
                 )
 
                 query_stats.append({
+                    "collected": collected_count,
+                    "after_activity": segment_count,
+                    "after_location": len(got or []),
                     "q": q,
                     "segmento": seg or None,
                     "ms": dt_ms,
