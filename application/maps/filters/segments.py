@@ -16,6 +16,9 @@ def _filter_segment_noise(results: list[dict], seg: str) -> list[dict]:
     from application.maps.accessories import is_accessories, filter_accessories
     if is_accessories(seg):
         return filter_accessories(results)
+    from application.maps.car_dealers import is_car_dealer, filter_car_dealers
+    if is_car_dealer(seg):
+        return filter_car_dealers(results)
     seg_clean = (seg or "").strip().lower()
 
     if "drone" in seg_clean:

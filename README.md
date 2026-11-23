@@ -1,6 +1,6 @@
 # Prospect CRM
 
-CRM local para prospecção B2B, qualificação, retornos, negociação, vendas e pós-venda. O foco atual é **acessórios de informática no Sudeste: SP, RJ, MG e ES**.
+CRM local para prospecção B2B, qualificação, retornos, negociação, vendas e pós-venda. Os perfis atuais são **Acessórios de informática** e **Lojas de carros**, no **Sudeste: SP, RJ, MG e ES**. Para lojas de carros, a campanha é **WATTS Mobilidade Elétrica**.
 
 ## Prospecção sem API paga
 
@@ -12,7 +12,7 @@ CRM local para prospecção B2B, qualificação, retornos, negociação, vendas 
 
 A coleta automatizada existente usa **Playwright no site do Google Maps**, sem chave de API. Pode falhar por mudança de página ou bloqueio e depende das condições do serviço. A alternativa independente do scraper é importar listas próprias ou montar contatos a partir de fontes comerciais públicas, revisando cada contato antes de abordar. Não há garantia de cobertura completa ou obtenção automática de contatos verificados.
 
-Os demais segmentos foram preservados para compatibilidade; a revisão de regras comerciais desta versão se concentra em acessórios de informática.
+O segmento [Lojas de carros — WATTS Mobilidade Elétrica](docs/SEGMENTO_LOJAS_CARROS.md) tem consultas e filtros próprios para buscar canais potenciais de revenda, sem exigir que já comercializem veículos elétricos. Os demais segmentos permanecem disponíveis para compatibilidade.
 
 ## Executar no Windows
 

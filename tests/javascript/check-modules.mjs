@@ -40,3 +40,12 @@ cacheModule.namespace.readMapsCache();
 assert.equal(context.window.__mapsResultsCache[0].nome,'current store');
 assert.equal(context.window.__mapsLastPayloadCache.resultsVersion,cacheModule.namespace.MAPS_RESULTS_VERSION);
 console.log('Old result cache invalidated; current results preserved.');
+
+const autocompleteSource=readFileSync('static/js/modules/autocomplete.js','utf8');
+const { SEGMENTOS, segmentoSelector }=await import(`data:text/javascript;base64,${Buffer.from(autocompleteSource).toString('base64')}`);
+assert.ok(SEGMENTOS.includes('Lojas de carros'));
+const selected=segmentoSelector();
+selected.toggle('Lojas de carros');
+assert.ok(selected.selecionados.includes('Lojas de carros'));
+assert.ok(selected.selecionados.includes('Acessórios de informática'));
+console.log('Car-dealer segment available alongside the existing accessories selection.');

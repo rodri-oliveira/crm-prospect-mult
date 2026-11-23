@@ -45,6 +45,7 @@ def create_lead_with_repo(req: CreateLeadRequest, repo: LeadRepository) -> Creat
         raise ValueError('CNPJ inválido.')
     if status == 'Cliente ativo':
         raise ValueError('Cadastre o lead e registre uma venda para ativar o cliente.')
+    from application.maps.car_dealers import campaign_note
     data = {
         "nome_loja": req.nome_loja,
         "cidade": req.cidade,
@@ -57,7 +58,7 @@ def create_lead_with_repo(req: CreateLeadRequest, repo: LeadRepository) -> Creat
         "endereco": req.endereco,
         "responsavel": req.responsavel,
         "segmentos": req.segmentos,
-        "observacoes": req.observacoes,
+        "observacoes": campaign_note(req.observacoes, req.segmentos),
         "maps_place_id": req.maps_place_id,
         "maps_url": req.maps_url,
         "status": status,

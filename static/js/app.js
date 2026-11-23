@@ -3,5 +3,5 @@
  * Este arquivo é importado pelo template
  */
 
-const APP_BUILD = '20261112-accessories-recall-2';
+const APP_BUILD = '20261123-car-dealers-watts-1';
 import(`./modules/prospeccao.js?v=${APP_BUILD}`);

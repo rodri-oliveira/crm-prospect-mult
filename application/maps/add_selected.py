@@ -33,6 +33,7 @@ def add_maps_items_with_repo(
     prospeccao_repo: ProspecctionTempRepository,
 ) -> AddMapsItemsResponse:
 
+    from application.maps.car_dealers import campaign_note
     items = req.items or []
 
     adicionados: list[int] = []
@@ -64,7 +65,7 @@ def add_maps_items_with_repo(
             "maps_place_id": maps_key,
             "maps_url": (it.get("maps_url") or "").strip(),
             "site": (it.get("website") or it.get("site") or "").strip(),
-            "observacao": 'Fonte: Google Maps. Atividade e contato aguardam conferência.',
+            "observacao": campaign_note('Fonte: Google Maps. Atividade e contato aguardam conferência.', segmento_str),
         }
 
         if not dados["nome_loja"]:

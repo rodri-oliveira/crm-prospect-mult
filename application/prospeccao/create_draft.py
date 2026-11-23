@@ -53,6 +53,7 @@ def create_prospeccao_draft_with_repo(
     if status == 'Interessado' and not req.cnpj:
         raise ValueError('Informe CNPJ válido para converter um interessado em lead.')
     validate_schedule(req.data_retorno, req.hora_retorno, status == 'Pediu para retornar')
+    from application.maps.car_dealers import campaign_note
     dados = {
         "nome_loja": req.nome_loja,
         "cnpj": req.cnpj,
@@ -65,7 +66,7 @@ def create_prospeccao_draft_with_repo(
         "maps_place_id": req.maps_place_id,
         "maps_url": req.maps_url,
         "site": req.site,
-        "observacoes": req.observacoes,
+        "observacoes": campaign_note(req.observacoes, req.segmento),
         "status_prospeccao": status,
         "data_retorno": req.data_retorno,
         "hora_retorno": req.hora_retorno,
