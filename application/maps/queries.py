@@ -23,6 +23,31 @@ def _build_queries_for_free_text(query: str, cidade: str, estado: str) -> list[s
     return [base]
 
 def _build_queries_for_segments(segs: list[str], cidade: str, estado: str, extra: str) -> list[dict[str, str]]:
+    from itertools import zip_longest
+    from application.maps.accessories import is_accessories, accessories_queries
+    from application.maps.car_dealers import is_car_dealer, car_dealer_queries
+    plans, seen_segments = [], set()
+    for segment in segs:
+        key = _norm_key(segment)
+        if not key or key in seen_segments:
+            continue
+        seen_segments.add(key)
+        if is_accessories(segment):
+            plans.append(accessories_queries(cidade, estado))
+        elif is_car_dealer(segment):
+            plans.append(car_dealer_queries(cidade, estado))
+        else:
+            plans.append(_build_legacy_queries_for_segments([segment], cidade, estado, extra))
+    output, seen_queries = [], set()
+    for round_specs in zip_longest(*plans):
+        for spec in round_specs:
+            if spec and spec['q'].casefold() not in seen_queries:
+                output.append(spec)
+                seen_queries.add(spec['q'].casefold())
+    return output
+
+
+def _build_legacy_queries_for_segments(segs: list[str], cidade: str, estado: str, extra: str) -> list[dict[str, str]]:
     """Estratégia inteligente de multi-query baseada nas famílias Multilaser (Curva ABC).
 
     Divide as âncoras em grupos lógicos por família de produto para maximizar
@@ -33,10 +58,6 @@ def _build_queries_for_segments(segs: list[str], cidade: str, estado: str, extra
     - 2-3 segmentos: combinar com OR (~20 queries)
     - 4+ segmentos: estratégia genérica + priorização (~25 queries)
     """
-    from application.maps.accessories import is_accessories, accessories_queries
-    if any(is_accessories(seg) for seg in segs):
-        return accessories_queries(cidade, estado)
-
     cidade_clean = (cidade or "").strip()
     estado_clean = (estado or "").strip()
 

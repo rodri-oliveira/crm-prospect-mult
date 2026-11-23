@@ -55,6 +55,7 @@ export const renderResults = (items) => {
                     <div class="min-w-0 flex-1">
                         <div class="text-sm font-bold text-gray-900 group-hover/label:text-brand-700 transition-colors truncate">${nome}</div>
                         <div class="text-[11px] leading-relaxed text-gray-500 mt-0.5 line-clamp-1">${endereco || '-'}</div>
+                        ${it.campaign ? `<p class="text-xs text-brand-700">Oferta: ${escapeHtml(it.campaign)}</p>` : ''}
                         ${it.quality_priority ? `<p class="text-xs text-blue-800">${escapeHtml(it.quality_priority)} — contato ainda não confirmado</p>` : ''}
 
                          <div class="flex flex-wrap items-center gap-x-2 mt-1.5">

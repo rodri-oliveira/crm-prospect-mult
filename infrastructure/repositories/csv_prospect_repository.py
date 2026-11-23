@@ -2,8 +2,7 @@
 from contextlib import closing
 from application.shared.company_identity import identity_keys
 from database import get_db_connection
-from application.prospeccao.import_csv import import_note
-from application.maps.accessories import SEGMENT
+from application.prospeccao.import_csv import import_note, import_segment
 
 
 
@@ -18,6 +17,7 @@ class CsvProspectRepository:
                 for record in conn.execute(f'SELECT nome_loja, cidade, estado, cnpj FROM {table}'):
                     known.update(identity_keys(dict(record)))
             for row in rows:
+                segment = import_segment(row.get('segmento'))
                 keys = identity_keys(row)
                 if keys & known:
                     duplicate += 1
@@ -25,7 +25,7 @@ class CsvProspectRepository:
                 fields = ['nome_loja', 'cnpj', 'telefone', 'whatsapp', 'email', 'site', 'responsavel', 'endereco', 'cidade', 'estado']
                 values = [row.get(field) or None for field in fields]
                 conn.execute(f"INSERT INTO prospeccao_temp ({', '.join(fields)}, segmento, observacao) VALUES ({', '.join('?' for _ in range(len(fields)+2))})",
-                             [*values, SEGMENT, import_note(row)])
+                             [*values, segment, import_note(row)])
                 known.update(keys)
                 added += 1
         return {'added': added, 'duplicates': duplicate}

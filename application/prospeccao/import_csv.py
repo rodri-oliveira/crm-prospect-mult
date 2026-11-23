@@ -3,7 +3,8 @@ import csv
 from datetime import datetime, timezone
 from io import StringIO
 import re
-from application.maps.accessories import SOUTHEAST, assess_accessories, safe_website
+from application.maps.accessories import SOUTHEAST, SEGMENT as ACCESSORIES, is_accessories, assess_accessories, safe_website
+from application.maps.car_dealers import SEGMENT as CAR_DEALERS, is_car_dealer, assess_car_dealer, campaign_note
 from application.maps.text import _norm_key
 from application.shared.cnpj_utils import is_valid_cnpj, normalize_cnpj
 from application.shared.phone_utils import normalize_phone
@@ -17,7 +18,16 @@ FIELDS = {'nome_loja', 'cidade', 'estado', 'telefone', 'whatsapp', 'cnpj', 'emai
           'endereco', 'responsavel', 'observacoes', 'fonte', 'url_fonte'}
 
 
-def preview_csv(raw):
+def import_segment(segment):
+    if is_accessories(segment or ACCESSORIES):
+        return ACCESSORIES
+    if is_car_dealer(segment):
+        return CAR_DEALERS
+    raise ValueError('Selecione Acessórios de informática ou Lojas de carros.')
+
+
+def preview_csv(raw, segmento=ACCESSORIES):
+    segmento = import_segment(segmento)
     if not raw or len(raw) > MAX_BYTES:
         raise ValueError('Envie um CSV de até 1 MB e 500 contatos.')
     try:
@@ -67,9 +77,16 @@ def preview_csv(raw):
                     errors.append(f'{field}: URL inválida')
             if not any(row[k] for k in ('telefone', 'whatsapp', 'email', 'site')):
                 errors.append('Informe ao menos um canal de contato')
-            quality = assess_accessories(row)
-            if quality['service_only']:
-                errors.append('Atividade de serviço sem evidência de revenda de acessórios')
+            row['segmento'] = segmento
+            if is_car_dealer(segmento):
+                quality = assess_car_dealer(row)
+                if quality['excluded']:
+                    errors.append('Atividade incompatível com revenda de carros')
+            else:
+                quality = assess_accessories(row)
+                quality['profile_fit'] = quality['accessories_fit']
+                if quality['service_only']:
+                    errors.append('Atividade de serviço sem evidência de revenda de acessórios')
             rows.append({'line': number, 'data': row, 'errors': errors, 'quality': quality})
         if not rows:
             raise ValueError('O arquivo não contém contatos.')
@@ -81,5 +98,6 @@ def preview_csv(raw):
 def import_note(row):
     stamp = datetime.now(timezone.utc).isoformat(timespec='seconds')
     source = row.get('fonte') or 'Lista informada pelo usuário'
-    return '\n'.join(filter(None, [row.get('observacoes'), f'Importado em {stamp}. Fonte: {source}',
-                                  row.get('url_fonte'), 'Revisão pendente: confirmar acessórios, comprador e contato.']))
+    pending = 'Revisão pendente: confirmar revenda de carros, responsável comercial e interesse na WATTS.' if is_car_dealer(row.get('segmento')) else 'Revisão pendente: confirmar acessórios, comprador e contato.'
+    note = '\n'.join(filter(None, [row.get('observacoes'), f'Importado em {stamp}. Fonte: {source}', row.get('url_fonte'), pending]))
+    return campaign_note(note, row.get('segmento'))

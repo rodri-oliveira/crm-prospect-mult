@@ -111,6 +111,7 @@ def search_maps_results_with_repo(
     req: SearchMapsResultsRequest,
     existing_keys_repo: MapsExistingKeysRepository,
 ) -> SearchMapsResultsResponse:
+    from application.maps.car_dealers import is_car_dealer
     logger = logging.getLogger(__name__)
     query = (req.query or "").strip()
     cidade = (req.cidade or "").strip()
@@ -149,6 +150,7 @@ def search_maps_results_with_repo(
 
             # Rastrear lojas únicas por query para análise de overlap
             seen_keys_total: set[str] = set()
+            executed_segments = set()
 
             for spec in query_specs:
                 q = (spec.get("q") or "").strip()
@@ -156,6 +158,7 @@ def search_maps_results_with_repo(
                 if not q:
                     continue
                 executed_queries.append(q)
+                executed_segments.add(_norm_key(seg))
                 t0 = time.time()
                 got = scrape_maps_results(q, limit=per_query_limit, headless=True)
                 dt_ms = int((time.time() - t0) * 1000)
@@ -180,7 +183,8 @@ def search_maps_results_with_repo(
                     it["query_sources"] = src
 
                 # Filtrar varejo grande dos resultados (Google Maps não respeita exclusão)
-                got = _filter_large_retail(got or [])
+                if not is_car_dealer(seg):
+                    got = _filter_large_retail(got or [])
 
                 # Filtro: remover a própria cidade retornada como se fosse um negócio
                 if cidade:
@@ -192,7 +196,7 @@ def search_maps_results_with_repo(
 
                 from application.maps.accessories import is_accessories, filter_accessories_location
                 segment_count = len(got or [])
-                if is_accessories(seg):
+                if is_accessories(seg) or is_car_dealer(seg):
                     got = filter_accessories_location(got or [], cidade, estado)
                 else:
                     if cidade:
@@ -236,7 +240,7 @@ def search_maps_results_with_repo(
                 merged.extend(got)
 
                 # Evita gastar queries quando jÃ¡ atingiu o limite Ãºnico desejado
-                if limit and len(seen_keys_total) >= limit:
+                if limit and len(seen_keys_total) >= limit and {_norm_key(s) for s in segs}.issubset(executed_segments):
                     logger.warning(
                         "maps_early_stop reason=limit_reached total_unique=%s limit=%s",
                         len(seen_keys_total),
@@ -274,7 +278,7 @@ def search_maps_results_with_repo(
                 return 3 # Outros/Sem tel
 
             from application.maps.accessories import is_accessories, filter_accessories
-            if any(is_accessories(s) for s in segs):
+            if segs and all(is_accessories(s) for s in segs):
                 merged = filter_accessories(merged)
             elif any((s or "").strip() == "Sennheiser" for s in segs):
                 merged.sort(
@@ -307,7 +311,10 @@ def search_maps_results_with_repo(
             else:
                 merged.sort(key=_get_sort_priority)
 
-            itens = merged[:limit]
+            if len(segs) > 1 and any(is_car_dealer(s) for s in segs):
+                itens = _balanced_segment_items(merged, segs, limit)
+            else:
+                itens = merged[:limit]
             for it in itens:
                 it["location_inferred"] = not bool(it.get("cidade"))
                 it["cidade"] = it.get("cidade") or cidade
@@ -336,7 +343,8 @@ def search_maps_results_with_repo(
             item['existing_status'] = (existing_data.key_status_map or {}).get(key)
 
     from application.maps.accessories import is_accessories
-    focused_failure = bool(message) and any(is_accessories(s) for s in segs)
+    from application.maps.car_dealers import is_car_dealer
+    focused_failure = bool(message) and any(is_accessories(s) or is_car_dealer(s) for s in segs)
     return SearchMapsResultsResponse(
         ok=not focused_failure,
         modo="error" if focused_failure else modo,
@@ -408,3 +416,22 @@ def _dedupe_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 # Preserve established imports used by callers and segment regression tests.
 __all__ = ['_filter_noise_brinquedos', '_DRONE_NEGATIVE_CATEGORIES', '_DRONE_NOISE_NAMES', '_DRONE_POSITIVE_TERMS', '_filter_noise_drones', '_filter_noise_gamer', '_filter_city_page_results', '_filter_items_with_other_city_in_name', '_filter_strict_city', '_filter_noise_informatica', '_score_informatica_fit', '_filter_noise_mobilidade_eletrica', '_looks_like_mobilidade_person_name', '_score_mobilidade_fit', '_filter_segment_noise', '_filter_noise_sennheiser', '_score_sennheiser_fit', '_filter_large_retail', '_filter_noise_varejo_medio', '_looks_like_person_name', '_score_varejo_medio_fit', '_build_queries_for_free_text', '_build_queries_for_segments', '_looks_like_segment_or_query', '_normalize_extra', '_norm_key', '_re_sub_ignoring_case', 'SearchMapsResultsRequest', 'SearchMapsResultsResponse', 'GenerateQueriesResponse', 'generate_queries_for_segments', 'search_maps_results', 'search_maps_results_with_repo']
+
+
+def _balanced_segment_items(items, segments, limit):
+    """Avoid filling a mixed search exclusively with the default accessories profile."""
+    from itertools import zip_longest
+    buckets = [[item for item in items if _norm_key(segment) in {_norm_key(s) for s in (item.get('segmentos') or [])}] for segment in segments]
+    output, used = [], set()
+    for group in zip_longest(*buckets):
+        for item in group:
+            if item is None:
+                continue
+            key = _key_from_item(item)
+            if key in used:
+                continue
+            used.add(key)
+            output.append(item)
+            if len(output) >= limit:
+                return output
+    return output

@@ -2,6 +2,8 @@
 
 ## Responsabilidades
 
+O perfil Lojas de carros está documentado em [SEGMENTO_LOJAS_CARROS.md](SEGMENTO_LOJAS_CARROS.md). Seu planejamento e qualificação ficam em `application/maps/car_dealers.py`; o histórico e os status comerciais existentes continuam sendo usados.
+
 | Área | Local |
 |---|---|
 | Foco comercial atual e consultas de descoberta | `application/maps/accessories.py` |
