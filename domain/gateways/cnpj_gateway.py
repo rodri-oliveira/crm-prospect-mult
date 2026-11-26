@@ -20,6 +20,8 @@ class CnpjInfo:
     telefone: str | None
     email: str | None
     atividade_principal: str | None
+    fonte_telefone: str | None = None
+    avisos: tuple[str, ...] = ()
 
 
 class CnpjGateway(Protocol):

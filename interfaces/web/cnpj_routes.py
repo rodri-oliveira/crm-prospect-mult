@@ -4,6 +4,7 @@ from __future__ import annotations
 from flask import Flask, jsonify, request
 
 from application.shared.cnpj_utils import is_valid_cnpj, normalize_cnpj
+from application.shared.cnpj_contacts import contact_values
 from infrastructure.container import cnpj_gateway
 
 
@@ -27,6 +28,8 @@ def api_consultar_cnpj():
         "ok": True,
         "cnpj": info.cnpj,
         "valid_local": True,
+        "consulta_versao": "20261126-contatos-1",
+        "avisos": list(info.avisos),
         "ativo": info.ativo,
         "situacao": info.situacao,
         "data": {
@@ -37,7 +40,8 @@ def api_consultar_cnpj():
             "cidade": info.cidade,
             "estado": info.estado,
             "cep": info.cep,
-            "telefone": info.telefone,
+            **contact_values(info.telefone),
+            "fonte_telefone": info.fonte_telefone,
             "email": info.email,
         }
     })
