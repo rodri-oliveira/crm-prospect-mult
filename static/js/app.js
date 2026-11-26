@@ -3,5 +3,5 @@
  * Este arquivo é importado pelo template
  */
 
-const APP_BUILD = '20261126-phone-review-1';
+const APP_BUILD = '20261126-cnpj-partial-1';
 import(`./modules/prospeccao.js?v=${APP_BUILD}`);

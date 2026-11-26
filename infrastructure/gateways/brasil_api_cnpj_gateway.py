@@ -81,7 +81,7 @@ class BrasilApiCnpjGateway(CnpjGateway):
             cidade=data.get("municipio"),
             estado=data.get("uf"),
             cep=data.get("cep"),
-            telefone=data.get("ddd_telefone_1"),
+            telefone=str(data.get("ddd_telefone_1") or '').strip() or data.get("ddd_telefone_2"),
             email=data.get("email"),
             atividade_principal=data.get("cnae_fiscal_descricao"),
         )

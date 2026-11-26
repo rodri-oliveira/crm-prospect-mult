@@ -86,3 +86,27 @@ fields.get('cnpjPhoneApply').onclick();
 assert.equal(fields.get('f_telefone').value,'(27) 3222-1234');
 assert.equal(fields.get('cnpjPhoneApply').hidden,true);
 console.log('Legacy mobile suggestion requires explicit application and cannot overwrite a changed phone.');
+
+// Repeat the sparse lookup shown in the screenshot: do not report a misleading zero.
+reset();
+fields.get('f_nome').value='35.303.902 WECSLEY FELIX DE LIMA';
+fields.get('f_endereco').value='RIBEIRANIA, 14096420';
+fields.get('f_cidade').value='RIBEIRAO PRETO';
+fields.get('f_estado').value='SP';
+respond=async url=>{
+    assert.match(url,/complementar=1/);
+    return {ok:true,json:async()=>({...sample,data:{razao_social:fields.get('f_nome').value,endereco:'RIBEIRANIA',cep:'14096420',cidade:'RIBEIRAO PRETO',estado:'SP'}})};
+};
+await fill();
+assert.match(fields.get('cnpjStatus').textContent,/Consulta concluída/);
+assert.match(fields.get('cnpjStatus').textContent,/Nenhum campo novo/);
+assert.match(fields.get('cnpjStatus').textContent,/Sem dados disponíveis para: telefone, e-mail/);
+assert.doesNotMatch(fields.get('cnpjStatus').textContent,/0 campo/);
+assert.equal(fields.get('f_telefone').value,'');
+assert.equal(fields.get('cnpjPhoneReview').hidden,true);
+// A later provider response containing a phone must still populate the empty field.
+respond=async()=>({ok:true,json:async()=>({...sample,data:{...sample.data,telefone:'1632221234'}})});
+await fill();
+assert.equal(fields.get('f_telefone').value,'(16) 3222-1234');
+assert.equal(fields.get('f_nome').value,'35.303.902 WECSLEY FELIX DE LIMA');
+console.log('Repeated partial CNPJ response explains missing contacts; enrichment fills a newly available phone.');
