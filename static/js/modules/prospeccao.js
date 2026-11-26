@@ -228,7 +228,8 @@ function initStatusDropdown() {
             return;
         }
 
-        text.textContent = `${checked.length} selecionados`;
+        text.textContent = checked.length === 1 ? checked[0].value : `${checked.length} selecionados`;
+        text.title = checked.map((cb) => cb.value).join(', ');
         text.className = 'truncate text-brand-600 font-bold';
     };
 
@@ -236,11 +237,21 @@ function initStatusDropdown() {
         event.preventDefault();
         event.stopPropagation();
         menu.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', String(!menu.classList.contains('hidden')));
     }, { signal });
 
     document.addEventListener('click', (event) => {
         if (!group.contains(event.target)) {
             menu.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    }, { signal });
+
+    group.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            menu.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.focus();
         }
     }, { signal });
 

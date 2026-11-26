@@ -42,7 +42,7 @@
     <!-- Interface Dividida -->
     <div class="flex flex-col xl:flex-row flex-1 gap-4 min-h-[600px]">
         <!-- Lado Esquerdo: Mapa + Lista -->
-        <div class="flex-[2] flex flex-col gap-4">
+        <div class="flex-[2] min-w-0 flex flex-col gap-4">
             <!-- Mapa -->
             {% include 'prospeccao/map_search.html' %}
 
@@ -51,12 +51,12 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
                 <div class="flex flex-wrap gap-2 items-center">
                     <span class="text-sm font-semibold text-gray-600 mr-2">Filtros:</span>
-                    <a href="/prospeccao"
+                    <a href="{{ filter_url(status=[]) }}"
                        class="px-3 py-1 rounded-full text-xs font-medium transition {% if not filtro_status %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-                        Todos ({{ resumo_prospeccao.total }})
+                        {% if filtro_status %}Limpar status{% else %}Todos ({{ resumo_prospeccao.total }}){% endif %}
                     </a>
                     {% for status, total in resumo_prospeccao.por_status %}
-                    <a href="/prospeccao?status={{ status|urlencode }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}"
+                    <a href="{{ filter_url(status=[status]) }}"
                        class="px-3 py-1 rounded-full text-xs font-medium transition
                               {% if filtro_status == status %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
                         {{ status }}: {{ total }}
@@ -66,9 +66,9 @@
 
                 {% if resumo_prospeccao.cidades %}
                 <div class="mt-3 pt-2 border-t border-gray-100 flex flex-wrap gap-2 items-center">
-                    <span class="text-[10px] font-bold text-gray-400 uppercase mr-2">Cidades Acionadas no Período:</span>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase mr-2">Cidades nos resultados:</span>
                     {% for cid in resumo_prospeccao.cidades %}
-                    <a href="/prospeccao?cidade={{ cid }}{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}"
+                    <a href="{{ filter_url(cidade=cid) }}"
                        class="px-2 py-0.5 rounded bg-gray-50 text-gray-500 hover:bg-brand-50 hover:text-brand-700 text-[10px] border border-gray-200 transition-all {% if cidade == cid %}border-brand-300 bg-brand-50 text-brand-700{% endif %}">
                         📍 {{ cid }}
                     </a>
@@ -86,90 +86,13 @@
                             📋 Lista de Prospecção ({{ resumo_prospeccao.total }})
                         </h3>
                         <div class="flex gap-2">
-                            <a href="/prospeccao?arquivados=1" class="text-xs px-3 py-1 rounded-full {% if mostrar_arquivados %}bg-brand-600 text-white{% else %}bg-gray-200 text-gray-600 hover:bg-gray-300{% endif %}">
-                                Ver Arquivados
+                            <a href="{{ filter_url(arquivados='' if mostrar_arquivados else '1') }}" class="text-xs px-3 py-1 rounded-full {% if mostrar_arquivados %}bg-brand-600 text-white{% else %}bg-gray-200 text-gray-600 hover:bg-gray-300{% endif %}">
+                                {% if mostrar_arquivados %}Ocultar arquivados{% else %}Incluir arquivados{% endif %}
                             </a>
                         </div>
                     </div>
 
-                    <!-- Filtros -->
-                    <form method="GET" action="/prospeccao" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 items-end bg-white p-3 rounded-lg border border-gray-100 shadow-sm mb-4">
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nome</label>
-                            <input type="text" name="nome" value="{{ filtro_nome or '' }}"
-                                   placeholder="Ex: Computecshop"
-                                   class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Telefone</label>
-                            <input type="text" name="telefone" value="{{ telefone or '' }}"
-                                   placeholder="(00) 00000-0000"
-                                   class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Cidade</label>
-                            <input type="text" name="cidade" value="{{ cidade or '' }}"
-                                   placeholder="Ex: Mogi das Cruzes"
-                                   class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Data Início</label>
-                            <input type="date" name="data_inicio" value="{{ data_inicio or '' }}"
-                                   class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
-                        </div>
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Data Fim</label>
-                            <input type="date" name="data_fim" value="{{ data_fim or '' }}"
-                                   class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all">
-                        </div>
-                        <div class="lg:col-span-1 relative group" id="statusFilterGroup">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Status</label>
-                            <div id="statusDropdownBtn" class="w-full rounded-lg border-gray-200 shadow-none text-sm px-3 py-2 border transition-all bg-white cursor-pointer flex justify-between items-center overflow-hidden h-[38px]">
-                                <span class="truncate text-gray-600" id="selectedStatusText">Todos</span>
-                                <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7"/></svg>
-                            </div>
-                            <!-- Menu do Dropdown -->
-                            <div id="statusDropdownMenu" class="hidden absolute right-0 z-50 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-64 overflow-y-auto p-2 space-y-1 min-w-[260px]">
-                                <label class="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer transition-colors border-b border-gray-50 mb-1 whitespace-nowrap">
-                                    <input type="checkbox" id="checkAllStatus" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-                                    <span class="text-xs font-bold text-gray-700">TODOS OS STATUS</span>
-                                </label>
-                                {% set statuses = [
-                                    'Não contatado', 'Não atendeu', 'Caixa postal', 'Enviado Portfólio Whats',
-                                    'Enviado Portfólio por E-mail', 'Não analisou ainda o material',
-                                    'Aguard. Lista Prod.', 'Pediu para retornar', 'Solicitou portfólio',
-                                    'Em negociação', 'Interessado', 'Já tem consultor atendendo',
-                                    'Sem interesse', 'Descartado', 'Convertido em Lead'
-                                ] %}
-                                {% for s in statuses %}
-                                <label class="flex items-center gap-2 p-1.5 hover:bg-brand-50 rounded cursor-pointer transition-colors whitespace-nowrap">
-                                    <input type="checkbox" name="status" value="{{ s }}"
-                                           class="status-checkbox rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                                           {% if s in filtro_status_list %}checked{% endif %}>
-                                    <span class="text-xs text-gray-600">{{ s }}</span>
-                                </label>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="lg:col-span-1">
-                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Tipo Tel.</label>
-                            <select name="tipo_telefone" class="w-full rounded-lg border-gray-200 shadow-none focus:border-brand-500 focus:ring-brand-500 text-sm px-3 py-2 border transition-all appearance-none bg-no-repeat bg-right" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%239ca3af%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E'); background-position: right 0.5rem center; background-size: 1.5em 1.5em;">
-                                <option value="">Todos</option>
-                                <option value="Fixo" {% if tipo_telefone == 'Fixo' %}selected{% endif %}>📞 Fixo</option>
-                                <option value="Celular" {% if tipo_telefone == 'Celular' %}selected{% endif %}>📱 Celular</option>
-                                <option value="Sem telefone" {% if tipo_telefone == 'Sem telefone' %}selected{% endif %}>🚫 Sem telefone</option>
-                            </select>
-                        </div>
-                        <div class="lg:col-span-1 flex gap-1">
-                            <button type="submit" class="flex-1 bg-brand-600 text-white px-3 py-2 rounded-lg hover:bg-brand-700 text-xs font-bold shadow-sm transition-all hover:shadow-md active:scale-95">
-                                FILTRAR
-                            </button>
-                            <a href="/prospeccao" class="bg-gray-100 text-gray-500 px-3 py-2 rounded-lg hover:bg-gray-200 text-xs font-bold transition-all" title="Limpar Filtros">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </a>
-                        </div>
-                    </form>
+                    {% include 'prospeccao/list_filters.html' %}
                 </div>
 
                 <div class="overflow-y-auto flex-1 p-4">
@@ -181,8 +104,8 @@
                     </div>
                     {% else %}
                     <div class="text-center py-10">
-                        <p class="text-gray-500 text-sm">Nenhum item na lista de prospecção.</p>
-                        <p class="text-gray-400 text-xs mt-1">Adicione lojas do Google Maps ao lado →</p>
+                        <p class="text-gray-500 text-sm">Nenhum contato corresponde aos filtros.</p>
+                        <p class="text-gray-400 text-xs mt-1">Amplie o período ou use Limpar filtros para consultar todo o histórico.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -198,5 +121,5 @@
 
 {% include 'prospeccao/maps_drawer.html' %}
 
-<script type="module" src="{{ url_for('static', filename='js/app.js', v='20260318-1') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/app.js', v='20261126-smart-filters-1') }}"></script>
 {% endblock %}

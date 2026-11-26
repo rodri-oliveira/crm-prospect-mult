@@ -2,18 +2,20 @@
 from __future__ import annotations
 
 from interfaces.web.shared.navigation import local_redirect
+from interfaces.web.shared.prospect_filters import filter_context, status_values
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 
 from application.prospeccao.create_draft import CreateProspecctionDraftRequest, create_prospeccao_draft_with_repo
 from application.prospeccao.list_view import ProspecctionListViewRequest, build_prospeccao_list_view_with_repo
 from application.prospeccao.update_status import UpdateProspecctionStatusRequest, update_prospecction_status_with_repo
+from application.shared.status import STATUS_PROSPECCAO
 from application.shared.cnpj_utils import is_valid_cnpj, normalize_cnpj
 from infrastructure.container import prospeccao_repository
 
 
 def _build_prospeccao_url_with_filters(**extra_kwargs):
     """Constrói URL de prospecção preservando filtros atuais."""
-    filtro_status = request.args.get("status") or request.form.get("filtro_status")
+    filtro_status = ",".join(status_values(request.args.getlist("status"))) or request.form.get("filtro_status")
     filtro_nome = request.args.get("nome") or request.form.get("filtro_nome")
     segmento = request.args.get("segmento") or request.form.get("filtro_segmento")
     cidade = request.args.get("cidade") or request.form.get("filtro_cidade")
@@ -46,64 +48,29 @@ def _build_prospeccao_url_with_filters(**extra_kwargs):
     if mostrar_arquivados:
         kwargs["arquivados"] = mostrar_arquivados
 
+    kwargs["periodo"] = "todos"
     kwargs.update(extra_kwargs)
     return url_for("prospeccao_view", **kwargs)
 
 
 def prospeccao_view():
-    filtro_status_list = request.args.getlist("status")
-    # Se houver apenas um item e for vazio ou "Todos", limpamos a lista
-    if not filtro_status_list or (len(filtro_status_list) == 1 and not filtro_status_list[0]):
-        filtro_status_list = []
-
-    filtro_status = filtro_status_list[0] if len(filtro_status_list) == 1 else None
-    if len(filtro_status_list) > 1:
-        filtro_status = ",".join(filtro_status_list)
-
-    filtro_nome = request.args.get("nome")
-    segmento = request.args.get("segmento")
-    cidade = request.args.get("cidade")
-    estado = request.args.get("estado")
-    telefone = request.args.get("telefone")
-    tipo_telefone = request.args.get("tipo_telefone")
-    data_inicio = request.args.get("data_inicio")
-    data_fim = request.args.get("data_fim")
-    mostrar_arquivados = request.args.get("arquivados") == "1"
-    erro = request.args.get("erro")
-
+    context = filter_context(request.args)
     view = build_prospeccao_list_view_with_repo(
         ProspecctionListViewRequest(
-            filtro_status=filtro_status,
-            filtro_nome=filtro_nome,
-            segmento=segmento,
-            cidade=cidade,
-            estado=estado,
-            telefone=telefone,
-            data_inicio=data_inicio,
-            data_fim=data_fim,
-            mostrar_arquivados=mostrar_arquivados,
-            tipo_telefone=tipo_telefone,
+            **{key: context[key] for key in (
+                'filtro_status', 'filtro_nome', 'segmento', 'cidade', 'estado',
+                'telefone', 'data_inicio', 'data_fim', 'mostrar_arquivados', 'tipo_telefone')},
+            default_to_today_when_no_dates=False,
         ),
         prospeccao_repository(),
     )
-
+    context['filter_status_options'] = list(dict.fromkeys(
+        STATUS_PROSPECCAO + [s for s, _ in view.resumo_prospeccao['por_status'] if s]
+        + context['filtro_status_list']))
     return render_template(
-        "prospeccao.html",
-        prospeccoes=view.prospeccoes,
-        resumo_prospeccao=view.resumo_prospeccao,
-        active_page="prospeccao",
-        filtro_status=filtro_status,
-        filtro_status_list=filtro_status_list,
-        filtro_nome=filtro_nome,
-        segmento=segmento,
-        cidade=cidade,
-        estado=estado,
-        telefone=telefone,
-        tipo_telefone=tipo_telefone,
-        data_inicio=data_inicio,
-        data_fim=data_fim,
-        mostrar_arquivados=mostrar_arquivados,
-        erro=erro,
+        'prospeccao.html', prospeccoes=view.prospeccoes,
+        resumo_prospeccao=view.resumo_prospeccao, active_page='prospeccao',
+        erro=request.args.get('erro'), **context,
     )
 
 

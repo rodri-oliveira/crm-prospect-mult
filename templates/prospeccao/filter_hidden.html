@@ -1,0 +1,4 @@
+{% for key, value in [('status', filtro_status), ('nome', filtro_nome), ('segmento', segmento), ('cidade', cidade), ('estado', estado), ('telefone', telefone), ('tipo_telefone', tipo_telefone), ('data_inicio', data_inicio), ('data_fim', data_fim)] %}
+<input type="hidden" name="filtro_{{ key }}" value="{{ value or '' }}">
+{% endfor %}
+<input type="hidden" name="filtro_arquivados" value="{{ '1' if mostrar_arquivados else '' }}">
