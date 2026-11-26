@@ -103,14 +103,15 @@ export async function preencherDadosCNPJ() {
         return true;
     };
     // Preserve fields already completed by the user or by a Maps selection.
-    const fields = ['f_nome', 'f_endereco', 'f_cidade', 'f_estado', 'f_telefone', 'f_email'];
+    const fields = ['f_nome', 'f_endereco', 'f_cidade', 'f_estado', 'f_telefone', 'f_whatsapp', 'f_email'];
     const original = new Map(fields.map(id => [id, document.getElementById(id)?.value || '']));
     let filled = 0;
     const fill = (id, value) => {
         const field = document.getElementById(id);
-        if (!field || original.get(id).trim() || field.value.trim() || !String(value || '').trim()) return;
+        if (!field || original.get(id).trim() || field.value.trim() || !String(value || '').trim()) return false;
         setValue(id, value);
         filled += 1;
+        return true;
     };
 
     if (!cnpj) {
@@ -119,7 +120,9 @@ export async function preencherDadosCNPJ() {
         return;
     }
 
-    status.textContent = 'Buscando dados...';
+    const button = document.getElementById('btnPreencherCnpj');
+    if (button) button.disabled = true;
+    status.textContent = 'Buscando cadastro e contatos...';
     status.className = 'text-xs text-gray-500';
 
     try {
@@ -141,19 +144,35 @@ export async function preencherDadosCNPJ() {
         fill('f_estado', d.estado || '');
         fill('f_telefone', formatPhoneBR(d.telefone || ''));
         fill('f_email', d.email || '');
+        const whatsappFilled = fill('f_whatsapp', formatPhoneBR(d.whatsapp || ''));
+        const whatsappNote = document.getElementById('f_whatsapp_status');
+        if (whatsappFilled && whatsappNote) {
+            whatsappNote.textContent = 'Celular sugerido; WhatsApp ainda não confirmado.';
+            whatsappNote.hidden = false;
+        }
 
         const razao = d.razao_social || d.nome_fantasia || 'CNPJ encontrado';
-        const notice = ' Campos existentes preservados. WhatsApp, site e responsável precisam de confirmação.';
-        status.textContent = (data.ativo === false
-            ? `Dados preenchidos | CNPJ NAO ATIVO (${data.situacao || 'situacao desconhecida'})`
-            : `${filled} campo(s) preenchido(s): ${razao}`) + notice;
-        status.className = data.ativo === false
-            ? 'text-xs text-red-700 font-bold'
-            : 'text-xs text-green-700';
+        const missing = [];
+        if (!document.getElementById('f_telefone')?.value.trim()) missing.push('telefone');
+        if (!document.getElementById('f_email')?.value.trim()) missing.push('e-mail');
+        const versionMissing = data.consulta_versao !== '20261126-contatos-1';
+        const source = d.fonte_telefone ? ` Telefone: ${d.fonte_telefone}.` : '';
+        const adjusted = d.telefones?.some(p => p.nono_digito_ajustado)
+            ? ' Celular no formato antigo: nono dígito acrescentado; confira o número.' : '';
+        const unavailable = missing.length ? ` Sem dados disponíveis para: ${missing.join(', ')}.` : '';
+        const outcome = filled ? `${filled} campo(s) preenchido(s).` : 'Os campos já preenchidos foram preservados.';
+        const inactive = data.ativo === false ? ` CNPJ NÃO ATIVO (${data.situacao || 'situação desconhecida'}).` : '';
+        const notices = Array.isArray(data.avisos) ? data.avisos.join(' ') : '';
+        const restart = versionMissing ? ' Reinicie o aplicativo: o servidor ainda não carregou a consulta atualizada.' : '';
+        status.textContent = `Consulta concluída: ${razao}. ${outcome}${source}${adjusted}${unavailable}${inactive} ${notices} WhatsApp sugerido precisa de confirmação.${restart}`;
+        status.className = data.ativo === false ? 'text-xs text-red-700 font-bold'
+            : (missing.length || versionMissing || notices) ? 'text-xs text-amber-800' : 'text-xs text-green-700';
     } catch (e) {
         if (!isCurrent()) return;
         status.textContent = 'Erro de conexao. Verifique sua internet e tente novamente.';
         status.className = 'text-xs text-red-700';
+    } finally {
+        if (button && requestId === fillRequest) button.disabled = false;
     }
 }
 
