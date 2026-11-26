@@ -51,3 +51,19 @@ assert.ok(selected.selecionados.includes('Acessórios de informática'));
 console.log('Car-dealer segment available alongside the existing accessories selection.');
 
 await import('./check-cnpj.mjs');
+
+const phoneSource=readFileSync('static/js/modules/phone-format.js','utf8');
+const { formatPhoneBR, legacyMobileSuggestion }=await import(`data:text/javascript;base64,${Buffer.from(phoneSource).toString('base64')}`);
+for (const [input, expected] of [
+    ['2799743600', '(27) 99974-3600'],
+    ['+55 (27) 9974-3600', '(27) 99974-3600'],
+    ['2781234567', '(27) 98123-4567'],
+]) assert.equal(legacyMobileSuggestion(input),expected);
+for (const input of ['2732221234','27999743600','5527999743600','99743600','08001234567','2771234567','2761234567','0099743600','2799743600 / 2732221234']) assert.equal(legacyMobileSuggestion(input),'');
+assert.equal(formatPhoneBR('2799743600'),'(27) 9974-3600');
+assert.equal(formatPhoneBR('5527999743600'),'(27) 99974-3600');
+assert.equal(formatPhoneBR('2732221234'),'(27) 3222-1234');
+assert.equal(formatPhoneBR('2799743600 / 2732221234'),'(27) 9974-3600 / (27) 3222-1234');
+assert.equal(formatPhoneBR(formatPhoneBR('5527999743600')),'(27) 99974-3600');
+assert.equal(formatPhoneBR('08001234567'),'08001234567');
+console.log('Phone formatting preserves digits, country codes, landlines and separate numbers; only eligible legacy mobiles receive suggestions.');
