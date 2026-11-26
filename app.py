@@ -23,6 +23,7 @@ app.config.update(
     CRM_USERNAME=os.environ.get('CRM_USERNAME'),
     CRM_PASSWORD=os.environ.get('CRM_PASSWORD'),
     MAX_CONTENT_LENGTH=3 * 1024 * 1024,
+    TEMPLATES_AUTO_RELOAD=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=os.environ.get('CRM_COOKIE_SECURE', '').lower() == 'true',
@@ -125,4 +126,12 @@ register_web_routes(app)
 register_api_routes(app)
 
 if __name__ == '__main__':
-    app.run(host=os.environ.get('CRM_HOST', '127.0.0.1'), debug=os.environ.get('FLASK_DEBUG', '').lower() == 'true', port=int(os.environ.get('PORT', '5000')))
+    from application.shared.runtime import port_in_use
+    host = os.environ.get('CRM_HOST', '127.0.0.1')
+    port = int(os.environ.get('PORT', '5000'))
+    auto_reload = os.environ.get('CRM_AUTO_RELOAD', '1').lower() not in ('0', 'false', 'off', 'no')
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true' and port_in_use(host, port):
+        raise SystemExit(f'A porta {port} já está em uso. Feche a janela antiga do CRM antes de iniciar esta versão.')
+    logger.info('CRM iniciado de %s | recarga de código: %s | recarga de templates: ativa', app.root_path, auto_reload)
+    app.run(host=host, debug=os.environ.get('FLASK_DEBUG', '').lower() == 'true',
+            port=port, use_reloader=auto_reload)
