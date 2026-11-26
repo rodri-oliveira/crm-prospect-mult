@@ -1,6 +1,7 @@
 from __future__ import annotations
 import sqlite3
 from typing import Any
+from infrastructure.repositories.prospect_filters import filter_where, register_filter_functions
 from database import DB_PATH, get_db_connection
 from domain.repositories.prospeccao_repository import ProspecctionSummary, ProspeccaoRepository
 class SqliteProspeccaoRepository(ProspeccaoRepository):
@@ -28,82 +29,13 @@ class SqliteProspeccaoRepository(ProspeccaoRepository):
         conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        where_parts = []
-        params: list[Any] = []
-        tel_digits = ""
-        is_phone_search = False
-        if telefone:
-            tel_input = (telefone or "").strip()
-            tel_digits = "".join(ch for ch in tel_input if ch.isdigit())
-            # Remover codigo do pais se vier com +55
-            if tel_digits.startswith("55") and len(tel_digits) > 11:
-                tel_digits = tel_digits[2:]
-            if tel_digits:
-                is_phone_search = True
-        if not mostrar_arquivados and not is_phone_search:
-            where_parts.append("(arquivado = 0 OR arquivado IS NULL)")
-        # Excluir agendamentos da lista de prospeccao (esses ficam em /agendamentos)
-        if not is_phone_search:
-            agendamento_statuses = ('Pediu para retornar', 'Agendamento', 'Em negociação', 'Em negociacao', 'Não analisou ainda o material')
-            if status not in agendamento_statuses:
-                where_parts.append("(data_retorno IS NULL OR data_retorno = '')")
-        if status:
-            if "," in status:
-                status_list = [s.strip() for s in status.split(",") if s.strip()]
-                placeholders = ",".join(["?"] * len(status_list))
-                where_parts.append(f"status_prospeccao IN ({placeholders})")
-                params.extend(status_list)
-            else:
-                where_parts.append("status_prospeccao = ?")
-                params.append(status)
-        if nome:
-            nome_raw = (nome or "").strip().lower()
-            nome_nospace = nome_raw.replace(" ", "")
-            where_parts.append("(lower(nome_loja) LIKE ? OR lower(replace(nome_loja, ' ', '')) LIKE ? OR lower(responsavel) LIKE ?)")
-            params.append(f"%{nome_raw}%")
-            params.append(f"%{nome_nospace}%")
-            params.append(f"%{nome_raw}%")
-        if segmento:
-            where_parts.append("segmento LIKE ?")
-            params.append(f"%{segmento}%")
-        if cidade:
-            where_parts.append("cidade LIKE ?")
-            params.append(f"%{cidade}%")
-        if estado:
-            where_parts.append("estado LIKE ?")
-            params.append(f"%{estado}%")
-        if tel_digits:
-            # Busca parcial por numeros, ignorando formatacao ((), -, espacos)
-            tel_pattern = f"%{tel_digits}%"
-            tel_sql = (
-                "replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            )
-            wa_sql = (
-                "replace(replace(replace(replace(replace(whatsapp, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            )
-            where_parts.append(f"({tel_sql} LIKE ? OR {wa_sql} LIKE ?)")
-            params.append(tel_pattern)
-            params.append(tel_pattern)
-        # Filtro por tipo de telefone (Fixo/Celular)
-        if tipo_telefone:
-            tel_clean_sql = "replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            if tipo_telefone == 'Fixo':
-                where_parts.append(f"substr({tel_clean_sql}, 3, 1) IN ('2', '3', '4', '5')")
-            elif tipo_telefone == 'Celular':
-                where_parts.append(f"substr({tel_clean_sql}, 3, 1) = '9'")
-            elif tipo_telefone == 'Sem telefone':
-                where_parts.append("(telefone IS NULL OR telefone = '')")
-        if not is_phone_search:
-            if data_inicio and data_fim:
-                where_parts.append("date(data_prospeccao) BETWEEN date(?) AND date(?)")
-                params.extend([data_inicio, data_fim])
-            elif data_inicio:
-                where_parts.append("date(data_prospeccao) >= date(?)")
-                params.append(data_inicio)
-            elif data_fim:
-                where_parts.append("date(data_prospeccao) <= date(?)")
-                params.append(data_fim)
-        where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+        register_filter_functions(conn)
+        where_clause, params = filter_where(
+            status=status, nome=nome, segmento=segmento, cidade=cidade,
+            estado=estado, telefone=telefone, data_inicio=data_inicio,
+            data_fim=data_fim, mostrar_arquivados=mostrar_arquivados,
+            tipo_telefone=tipo_telefone,
+        )
         # Ordenacao: a ultima tabulacao/evento aparece sempre primeiro.
         tel_clean = "replace(replace(replace(replace(replace(p.telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
         order_by = f"""
@@ -146,77 +78,13 @@ class SqliteProspeccaoRepository(ProspeccaoRepository):
     ) -> ProspecctionSummary:
         conn = get_db_connection(DB_PATH)
         c = conn.cursor()
-        where_parts = []
-        params: list[Any] = []
-        tel_digits = ""
-        is_phone_search = False
-        if telefone:
-            tel_input = (telefone or "").strip()
-            tel_digits = "".join(ch for ch in tel_input if ch.isdigit())
-            # Remover codigo do pais se vier com +55
-            if tel_digits.startswith("55") and len(tel_digits) > 11:
-                tel_digits = tel_digits[2:]
-            if tel_digits:
-                is_phone_search = True
-        if not mostrar_arquivados and not is_phone_search:
-            where_parts.append("(arquivado = 0 OR arquivado IS NULL)")
-        if status:
-            if "," in status:
-                status_list = [s.strip() for s in status.split(",") if s.strip()]
-                placeholders = ",".join(["?"] * len(status_list))
-                where_parts.append(f"status_prospeccao IN ({placeholders})")
-                params.extend(status_list)
-            else:
-                where_parts.append("status_prospeccao = ?")
-                params.append(status)
-        if nome:
-            nome_raw = (nome or "").strip().lower()
-            nome_nospace = nome_raw.replace(" ", "")
-            where_parts.append("(lower(nome_loja) LIKE ? OR lower(replace(nome_loja, ' ', '')) LIKE ? OR lower(responsavel) LIKE ?)")
-            params.append(f"%{nome_raw}%")
-            params.append(f"%{nome_nospace}%")
-            params.append(f"%{nome_raw}%")
-        if segmento:
-            where_parts.append("segmento LIKE ?")
-            params.append(f"%{segmento}%")
-        if cidade:
-            where_parts.append("cidade LIKE ?")
-            params.append(f"%{cidade}%")
-        if estado:
-            where_parts.append("estado LIKE ?")
-            params.append(f"%{estado}%")
-        if tel_digits:
-            # Busca parcial por numeros, ignorando formatacao ((), -, espacos)
-            tel_pattern = f"%{tel_digits}%"
-            tel_sql = (
-                "replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            )
-            wa_sql = (
-                "replace(replace(replace(replace(replace(whatsapp, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            )
-            where_parts.append(f"({tel_sql} LIKE ? OR {wa_sql} LIKE ?)")
-            params.append(tel_pattern)
-            params.append(tel_pattern)
-        # Filtro por tipo de telefone (Fixo/Celular)
-        if tipo_telefone:
-            tel_clean_sql = "replace(replace(replace(replace(replace(telefone, '(', ''), ')', ''), '-', ''), ' ', ''), '+', '')"
-            if tipo_telefone == 'Fixo':
-                where_parts.append(f"substr({tel_clean_sql}, 3, 1) IN ('2', '3', '4', '5')")
-            elif tipo_telefone == 'Celular':
-                where_parts.append(f"substr({tel_clean_sql}, 3, 1) = '9'")
-            elif tipo_telefone == 'Sem telefone':
-                where_parts.append("(telefone IS NULL OR telefone = '')")
-        if not is_phone_search:
-            if data_inicio and data_fim:
-                where_parts.append("date(data_prospeccao) BETWEEN date(?) AND date(?)")
-                params.extend([data_inicio, data_fim])
-            elif data_inicio:
-                where_parts.append("date(data_prospeccao) >= date(?)")
-                params.append(data_inicio)
-            elif data_fim:
-                where_parts.append("date(data_prospeccao) <= date(?)")
-                params.append(data_fim)
-        where_clause = " AND ".join(where_parts) if where_parts else "1=1"
+        register_filter_functions(conn)
+        where_clause, params = filter_where(
+            status=status, nome=nome, segmento=segmento, cidade=cidade,
+            estado=estado, telefone=telefone, data_inicio=data_inicio,
+            data_fim=data_fim, mostrar_arquivados=mostrar_arquivados,
+            tipo_telefone=tipo_telefone,
+        )
         c.execute(f"SELECT COUNT(*) FROM prospeccao_temp WHERE {where_clause}", params)
         total = c.fetchone()[0]
         c.execute(

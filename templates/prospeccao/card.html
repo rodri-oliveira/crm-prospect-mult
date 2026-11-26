@@ -95,14 +95,7 @@
                             <!-- Formulário para adicionar/editar observação -->
                             <form action="/prospeccao/rascunho/{{ item.id }}/observacao" method="POST" class="mb-2">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                                <input type="hidden" name="filtro_status" value="{{ filtro_status or '' }}">
-                                <input type="hidden" name="filtro_nome" value="{{ filtro_nome or '' }}">
-                                <input type="hidden" name="filtro_segmento" value="{{ segmento or '' }}">
-                                <input type="hidden" name="filtro_cidade" value="{{ cidade or '' }}">
-                                <input type="hidden" name="filtro_estado" value="{{ estado or '' }}">
-                                <input type="hidden" name="filtro_data_inicio" value="{{ data_inicio or '' }}">
-                                <input type="hidden" name="filtro_data_fim" value="{{ data_fim or '' }}">
-                                <input type="hidden" name="filtro_arquivados" value="{% if mostrar_arquivados %}1{% endif %}">
+                                {% include 'prospeccao/filter_hidden.html' %}
                                 <div class="grid grid-cols-2 gap-2 mb-2">
                                     <div>
                                         <label class="block text-[10px] uppercase font-bold text-gray-400 mb-0.5">Telefone</label>
