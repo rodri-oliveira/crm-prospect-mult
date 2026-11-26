@@ -18,7 +18,9 @@ def api_consultar_cnpj():
         return jsonify({"ok": False, "cnpj": cnpj, "valid_local": False, "message": "CNPJ inválido"}), 400
 
     gateway = cnpj_gateway()
-    info = gateway.consultar(cnpj)
+    complement = getattr(gateway, 'consultar_complementar', None)
+    info = (complement(cnpj) if request.args.get('complementar') == '1' and callable(complement)
+            else gateway.consultar(cnpj))
     
     if not info:
         return jsonify({"ok": False, "cnpj": cnpj, "valid_local": True, "message": "CNPJ não encontrado ou APIs de consulta indisponíveis"}), 502

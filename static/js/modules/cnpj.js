@@ -125,11 +125,11 @@ export async function preencherDadosCNPJ() {
         return;
     }
 
-    status.textContent = 'Buscando dados...';
+    status.textContent = 'Buscando dados e contatos disponíveis...';
     status.className = 'text-xs text-gray-500';
 
     try {
-        const resp = await fetch(`/api/cnpj/consultar?cnpj=${encodeURIComponent(cnpj)}`);
+        const resp = await fetch(`/api/cnpj/consultar?cnpj=${encodeURIComponent(cnpj)}&complementar=1`);
         const data = await resp.json();
         if (!isCurrent()) return;
 
@@ -166,13 +166,16 @@ export async function preencherDadosCNPJ() {
         }
 
         const razao = d.razao_social || d.nome_fantasia || 'CNPJ encontrado';
-        const notice = ' Campos existentes preservados. WhatsApp, site e responsável precisam de confirmação.';
-        status.textContent = (data.ativo === false
-            ? `Dados preenchidos | CNPJ NAO ATIVO (${data.situacao || 'situacao desconhecida'})`
-            : `${filled} campo(s) preenchido(s): ${razao}`) + notice;
+        const labels = {f_nome:'nome', f_endereco:'endereço', f_cidade:'cidade',
+            f_estado:'UF', f_telefone:'telefone', f_email:'e-mail'};
+        const missing = fields.filter(id => !document.getElementById(id)?.value.trim()).map(id => labels[id]);
+        const outcome = filled ? `${filled} campo(s) preenchido(s)` : 'Nenhum campo novo; os dados já preenchidos foram preservados';
+        const absent = missing.length ? ` Sem dados disponíveis para: ${missing.join(', ')}.` : '';
+        const inactive = data.ativo === false ? ` CNPJ NÃO ATIVO (${data.situacao || 'situação desconhecida'}).` : '';
+        status.textContent = `Consulta concluída: ${razao}. ${outcome}.${absent}${inactive} WhatsApp, site e responsável precisam de confirmação.`;
         status.className = data.ativo === false
             ? 'text-xs text-red-700 font-bold'
-            : 'text-xs text-green-700';
+            : missing.length ? 'text-xs text-amber-800' : 'text-xs text-green-700';
     } catch (e) {
         if (!isCurrent()) return;
         status.textContent = 'Erro de conexao. Verifique sua internet e tente novamente.';
