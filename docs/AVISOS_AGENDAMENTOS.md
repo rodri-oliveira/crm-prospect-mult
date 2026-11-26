@@ -15,3 +15,14 @@ Validação: testes com SQLite temporário reproduzem um retorno antigo e outro 
 
 
 O aviso também tem um bloco fixo diretamente abaixo de CRM Multi, antes dos links do menu lateral, em todas as telas. Mostra RETORNOS ATRASADOS ou RETORNOS PRÓXIMOS com a contagem e um atalho para a agenda. O bloco usa cores inline, e o JavaScript também aplica cores no item Agendamentos, para manter a sinalização em navegação HTMX quando o cabeçalho da página não é recarregado. Uma falha na contagem deixa um aviso visível para consultar a agenda, em vez de aparentar ausência de retornos. As rotinas de atualização têm versão e limpeza de listeners/intervalo para atualizações posteriores.
+
+
+## Aplicação de atualizações
+
+O aplicativo local usa recarga de templates e, na execução por `py app.py`, recarga dos arquivos Python. Isso não habilita o depurador: debug continua desativado por padrão. `CRM_AUTO_RELOAD=0` desativa a recarga de código se necessário. O início registra a pasta da aplicação e impede outra instância na mesma porta; o processo filho do recarregador reutiliza a porta normalmente.
+
+Para Windows, ATUALIZAR_E_INICIAR_CRM.bat muda para a pasta onde o arquivo está, atualiza com git pull --ff-only e inicia o app pelo caminho absoluto. A janela antiga do servidor precisa ser fechada antes. O arquivo não encerra outros programas e não descarta alterações locais.
+
+A regressão de atualização foi reproduzida com o servidor carregado: a mudança no layout não aparecia em uma nova requisição a /prospeccao porque os templates estavam em cache. O teste agora altera o arquivo de layout após a primeira requisição e confirma a nova versão na requisição seguinte, sem reiniciar a aplicação. Há também teste do ponto de entrada __main__, da porta ocupada e do filho do recarregador.
+
+Validação adicional com processo real: app.py foi iniciado em porta temporária com banco sintético. Foram consultadas a API e as páginas Prospecção, Agenda e Dashboard; todas receberam o aviso lateral. Uma alteração no layout apareceu na próxima requisição. Uma alteração no módulo Python disparou o recarregador e a nova resposta foi observada por HTTP, com os retornos preservados. O processo de teste foi encerrado ao final. Esse teste não acessou o computador nem o banco do usuário.
