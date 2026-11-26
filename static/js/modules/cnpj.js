@@ -102,13 +102,11 @@ export async function preencherDadosCNPJ() {
         }
         return true;
     };
-    // Preserve fields already completed by the user or by a Maps selection.
-    const fields = ['f_nome', 'f_endereco', 'f_cidade', 'f_estado', 'f_telefone', 'f_whatsapp', 'f_email'];
-    const original = new Map(fields.map(id => [id, document.getElementById(id)?.value || '']));
+    // Each explicit lookup replaces the previous company's data.
     let filled = 0;
     const fill = (id, value) => {
         const field = document.getElementById(id);
-        if (!field || original.get(id).trim() || field.value.trim() || !String(value || '').trim()) return false;
+        if (!field || field.value.trim() || !String(value || '').trim()) return false;
         setValue(id, value);
         filled += 1;
         return true;
@@ -120,6 +118,7 @@ export async function preencherDadosCNPJ() {
         return;
     }
 
+    clearCompanyFields();
     const button = document.getElementById('btnPreencherCnpj');
     if (button) button.disabled = true;
     status.textContent = 'Buscando cadastro e contatos...';
@@ -144,7 +143,7 @@ export async function preencherDadosCNPJ() {
         fill('f_estado', d.estado || '');
         fill('f_telefone', formatPhoneBR(d.telefone || ''));
         fill('f_email', d.email || '');
-        const whatsappFilled = fill('f_whatsapp', formatPhoneBR(d.whatsapp || ''));
+        const whatsappFilled = fill('f_whatsapp', formatPhoneBR(d.whatsapp || mobileFromPhone(d.telefone)));
         const whatsappNote = document.getElementById('f_whatsapp_status');
         if (whatsappFilled && whatsappNote) {
             whatsappNote.textContent = 'Celular sugerido; WhatsApp ainda não confirmado.';
@@ -160,7 +159,7 @@ export async function preencherDadosCNPJ() {
         const adjusted = d.telefones?.some(p => p.nono_digito_ajustado)
             ? ' Celular no formato antigo: nono dígito acrescentado; confira o número.' : '';
         const unavailable = missing.length ? ` Sem dados disponíveis para: ${missing.join(', ')}.` : '';
-        const outcome = filled ? `${filled} campo(s) preenchido(s).` : 'Os campos já preenchidos foram preservados.';
+        const outcome = filled ? `${filled} campo(s) preenchido(s).` : 'A consulta não retornou dados para preencher.';
         const inactive = data.ativo === false ? ` CNPJ NÃO ATIVO (${data.situacao || 'situação desconhecida'}).` : '';
         const notices = Array.isArray(data.avisos) ? data.avisos.join(' ') : '';
         const restart = versionMissing ? ' Reinicie o aplicativo: o servidor ainda não carregou a consulta atualizada.' : '';
@@ -176,10 +175,42 @@ export async function preencherDadosCNPJ() {
     }
 }
 
+function clearCompanyFields() {
+    // Invalidate late Maps enrichment so it cannot restore the previous store.
+    window.__mapsUseCurrentKey = null;
+    for (const id of ['f_nome', 'f_endereco', 'f_cidade', 'f_estado', 'f_telefone',
+        'f_whatsapp', 'f_email', 'f_site', 'f_responsavel', 'f_maps_place_id', 'f_maps_url']) {
+        setValue(id, '');
+    }
+    const form = document.getElementById('formLead');
+    for (const name of ['observacoes', 'status_prospeccao', 'data_retorno', 'hora_retorno']) {
+        const field = form?.querySelector(`[name="${name}"]`);
+        if (field) {
+            field.value = '';
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+    // Keep CNPJ, selected segments and the CSRF token; they belong to this action.
+    const note = document.getElementById('f_whatsapp_status');
+    if (note) { note.textContent = ''; note.hidden = true; }
+    for (const id of ['f_site_btn', 'f_telefone_badge', 'campo-data-retorno', 'campo-hora-retorno']) {
+        const element = document.getElementById(id);
+        element?.classList?.add('hidden');
+        if (id === 'f_site_btn' && element) element.onclick = null;
+    }
+}
+
+function mobileFromPhone(value) {
+    return String(value || '').split(/[\/;,]/).map(formatPhoneBR).find(phone => {
+        const digits = phone.replace(/\D/g, '');
+        return digits.length === 11 && digits[2] === '9';
+    }) || '';
+}
+
 function setValue(id, value) {
     const el = document.getElementById(id);
-    if (!el || value == null || String(value).trim() === '') return;
-    el.value = String(value).trim();
+    if (!el) return;
+    el.value = String(value ?? '').trim();
     el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
@@ -187,11 +218,17 @@ function formatPhoneBR(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
 
+    if (/[\/;,]/.test(raw)) return raw.split(/[\/;,]/).map(formatPhoneBR).filter(Boolean).join(' / ');
     let digits = raw.replace(/\D/g, '');
     if (!digits) return raw;
 
     if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
         digits = digits.substring(2);
+    }
+
+    const ddds = new Set('11 12 13 14 15 16 17 18 19 21 22 24 27 28 31 32 33 34 35 37 38 41 42 43 44 45 46 47 48 49 51 53 54 55 61 62 63 64 65 66 67 68 69 71 73 74 75 77 79 81 82 83 84 85 86 87 88 89 91 92 93 94 95 96 97 98 99'.split(' '));
+    if (digits.length === 10 && ddds.has(digits.slice(0, 2)) && ['8', '9'].includes(digits[2])) {
+        digits = digits.slice(0, 2) + '9' + digits.slice(2);
     }
 
     if (digits.length === 8) return `${digits.substring(0, 4)}-${digits.substring(4)}`;
