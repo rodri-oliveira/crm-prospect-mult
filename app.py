@@ -35,12 +35,6 @@ register_security(app)
 def inject_globals():
     try:
         stats = prospeccao_repository().get_retornos_stats()
-        view = agendamentos_repository().get_view_data(date.today().isoformat(), mostrar_todos=False)
-
-        # Badge lateral consolidado: prospeccao + leads.
-        stats["hoje"] = int(stats.get("hoje", 0)) + int(view.total_leads_hoje or 0)
-        stats["atrasados"] = int(stats.get("atrasados", 0)) + int(view.total_leads_atrasados or 0)
-        stats["total"] = int(stats.get("hoje", 0)) + int(stats.get("atrasados", 0))
         return {
             'retornos_stats': stats
         }
