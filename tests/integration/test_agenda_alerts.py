@@ -107,3 +107,28 @@ def test_no_hour_is_pending_today_without_false_overdue(clock):
     result=stats()
     assert result['total']==1 and result['sem_horario']==1 and result['nivel']=='hoje'
     assert result['atrasados']==0 and result['urgentes']==0
+
+
+@pytest.mark.parametrize('url',['/','/prospeccao','/leads','/vendas','/relatorio'])
+def test_prominent_alert_is_inside_sidebar_outside_agenda(clock,browser,url):
+    prospect('2026-11-19','10:00')
+    prospect('2026-11-26','16:30')
+    response=browser.get(url)
+    assert response.status_code==200
+    aside=re.search(r'<aside\b[^>]*>([\s\S]*?)</aside>',response.get_data(as_text=True)).group(1)
+    assert 'id="sidebar-agenda-callout"' in aside
+    assert '⚠ RETORNOS ATRASADOS' in aside
+    assert 'Atrasados: 1 · Em até 1h: 1' in aside
+    assert not re.search(r'id="sidebar-agenda-callout"\s+hidden',aside)
+    assert aside.index('CRM') < aside.index('sidebar-agenda-callout') < aside.index('<nav')
+
+
+def test_monitoring_error_is_visible_in_sidebar_instead_of_silent_zero(clock,browser,monkeypatch):
+    class Unavailable:
+        def get_retornos_stats(self):raise RuntimeError('synthetic monitoring failure')
+    monkeypatch.setattr('app.prospeccao_repository',lambda:Unavailable())
+    text=browser.get('/prospeccao').get_data(as_text=True)
+    aside=re.search(r'<aside\b[^>]*>([\s\S]*?)</aside>',text).group(1)
+    assert '⚠ VERIFIQUE A AGENDA' in aside
+    assert not re.search(r'id="sidebar-agenda-callout"\s+hidden',aside)
+    assert 'Não foi possível atualizar os avisos.' in aside
