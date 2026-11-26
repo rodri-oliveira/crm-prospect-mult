@@ -1,4 +1,3 @@
-import { formatPhoneBR, legacyMobileSuggestion } from './phone-format.js';
 let fillRequest = 0;
 
 /**
@@ -93,11 +92,6 @@ export async function preencherDadosCNPJ() {
     const status = document.getElementById('cnpjStatus');
     const cnpj = (el?.value || '').trim();
     const requestId = ++fillRequest;
-    const review = document.getElementById('cnpjPhoneReview');
-    const reviewText = document.getElementById('cnpjPhoneReviewText');
-    const applyPhone = document.getElementById('cnpjPhoneApply');
-    if (review) review.hidden = true;
-    if (applyPhone) applyPhone.onclick = null;
     const requestedCnpj = cnpj.replace(/\D/g, '');
     const isCurrent = () => {
         if (requestId !== fillRequest) return false;
@@ -125,11 +119,11 @@ export async function preencherDadosCNPJ() {
         return;
     }
 
-    status.textContent = 'Buscando dados e contatos disponíveis...';
+    status.textContent = 'Buscando dados...';
     status.className = 'text-xs text-gray-500';
 
     try {
-        const resp = await fetch(`/api/cnpj/consultar?cnpj=${encodeURIComponent(cnpj)}&complementar=1`);
+        const resp = await fetch(`/api/cnpj/consultar?cnpj=${encodeURIComponent(cnpj)}`);
         const data = await resp.json();
         if (!isCurrent()) return;
 
@@ -147,35 +141,15 @@ export async function preencherDadosCNPJ() {
         fill('f_estado', d.estado || '');
         fill('f_telefone', formatPhoneBR(d.telefone || ''));
         fill('f_email', d.email || '');
-        const phone = document.getElementById('f_telefone');
-        const loadedPhone = formatPhoneBR(d.telefone || '');
-        const suggestion = legacyMobileSuggestion(d.telefone);
-        if (suggestion && phone?.value === loadedPhone && review && reviewText && applyPhone) {
-            reviewText.textContent = `A fonte retornou ${loadedPhone}, com 8 dígitos após o DDD. Pode ser um celular antigo. Sugestão: ${suggestion}. Confira antes de usar; isso não confirma WhatsApp.`;
-            review.hidden = false;
-            applyPhone.onclick = () => {
-                if (!isCurrent() || phone.value !== loadedPhone) {
-                    reviewText.textContent = 'O CNPJ ou telefone mudou. Consulte novamente para revisar a sugestão.';
-                    applyPhone.hidden = true;
-                    return;
-                }
-                setValue('f_telefone', suggestion);
-                review.hidden = true;
-            };
-            applyPhone.hidden = false;
-        }
 
         const razao = d.razao_social || d.nome_fantasia || 'CNPJ encontrado';
-        const labels = {f_nome:'nome', f_endereco:'endereço', f_cidade:'cidade',
-            f_estado:'UF', f_telefone:'telefone', f_email:'e-mail'};
-        const missing = fields.filter(id => !document.getElementById(id)?.value.trim()).map(id => labels[id]);
-        const outcome = filled ? `${filled} campo(s) preenchido(s)` : 'Nenhum campo novo; os dados já preenchidos foram preservados';
-        const absent = missing.length ? ` Sem dados disponíveis para: ${missing.join(', ')}.` : '';
-        const inactive = data.ativo === false ? ` CNPJ NÃO ATIVO (${data.situacao || 'situação desconhecida'}).` : '';
-        status.textContent = `Consulta concluída: ${razao}. ${outcome}.${absent}${inactive} WhatsApp, site e responsável precisam de confirmação.`;
+        const notice = ' Campos existentes preservados. WhatsApp, site e responsável precisam de confirmação.';
+        status.textContent = (data.ativo === false
+            ? `Dados preenchidos | CNPJ NAO ATIVO (${data.situacao || 'situacao desconhecida'})`
+            : `${filled} campo(s) preenchido(s): ${razao}`) + notice;
         status.className = data.ativo === false
             ? 'text-xs text-red-700 font-bold'
-            : missing.length ? 'text-xs text-amber-800' : 'text-xs text-green-700';
+            : 'text-xs text-green-700';
     } catch (e) {
         if (!isCurrent()) return;
         status.textContent = 'Erro de conexao. Verifique sua internet e tente novamente.';
@@ -190,6 +164,24 @@ function setValue(id, value) {
     el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+function formatPhoneBR(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+
+    let digits = raw.replace(/\D/g, '');
+    if (!digits) return raw;
+
+    if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
+        digits = digits.substring(2);
+    }
+
+    if (digits.length === 8) return `${digits.substring(0, 4)}-${digits.substring(4)}`;
+    if (digits.length === 9) return `${digits.substring(0, 5)}-${digits.substring(5)}`;
+    if (digits.length === 10) return `(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6)}`;
+    if (digits.length === 11) return `(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}`;
+
+    return raw;
+}
 
 function buildEnderecoComCep(endereco, cep) {
     const end = String(endereco || '').trim();
