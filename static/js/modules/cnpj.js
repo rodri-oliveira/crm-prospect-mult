@@ -1,3 +1,5 @@
+let fillRequest = 0;
+
 /**
  * Módulo de consulta de CNPJ
  * Integração com API backend
@@ -89,6 +91,27 @@ export async function preencherDadosCNPJ() {
     const el = document.getElementById('f_cnpj');
     const status = document.getElementById('cnpjStatus');
     const cnpj = (el?.value || '').trim();
+    const requestId = ++fillRequest;
+    const requestedCnpj = cnpj.replace(/\D/g, '');
+    const isCurrent = () => {
+        if (requestId !== fillRequest) return false;
+        if ((el?.value || '').replace(/\D/g, '') !== requestedCnpj) {
+            status.textContent = 'CNPJ alterado. Clique em Preencher dados para consultar novamente.';
+            status.className = 'text-xs text-gray-500';
+            return false;
+        }
+        return true;
+    };
+    // Preserve fields already completed by the user or by a Maps selection.
+    const fields = ['f_nome', 'f_endereco', 'f_cidade', 'f_estado', 'f_telefone', 'f_email'];
+    const original = new Map(fields.map(id => [id, document.getElementById(id)?.value || '']));
+    let filled = 0;
+    const fill = (id, value) => {
+        const field = document.getElementById(id);
+        if (!field || original.get(id).trim() || field.value.trim() || !String(value || '').trim()) return;
+        setValue(id, value);
+        filled += 1;
+    };
 
     if (!cnpj) {
         status.textContent = 'Informe o CNPJ';
@@ -102,6 +125,7 @@ export async function preencherDadosCNPJ() {
     try {
         const resp = await fetch(`/api/cnpj/consultar?cnpj=${encodeURIComponent(cnpj)}`);
         const data = await resp.json();
+        if (!isCurrent()) return;
 
         if (!resp.ok || !data.ok) {
             status.textContent = data.message || 'Erro ao buscar dados do CNPJ';
@@ -111,22 +135,23 @@ export async function preencherDadosCNPJ() {
 
         const d = data.data || {};
         setValue('f_cnpj', data.cnpj);
-        setValue('f_nome', d.nome_fantasia || d.razao_social || '');
-        setValue('f_endereco', buildEnderecoComCep(d.endereco, d.cep));
-        setValue('f_cidade', d.cidade || '');
-        setValue('f_estado', d.estado || '');
-        setValue('f_telefone', formatPhoneBR(d.telefone || ''));
-        setValue('f_whatsapp', formatPhoneBR(d.telefone || ''));
-        setValue('f_email', d.email || '');
+        fill('f_nome', d.nome_fantasia?.trim() || d.razao_social || '');
+        fill('f_endereco', buildEnderecoComCep(d.endereco, d.cep));
+        fill('f_cidade', d.cidade || '');
+        fill('f_estado', d.estado || '');
+        fill('f_telefone', formatPhoneBR(d.telefone || ''));
+        fill('f_email', d.email || '');
 
         const razao = d.razao_social || d.nome_fantasia || 'CNPJ encontrado';
-        status.textContent = data.ativo === false
+        const notice = ' Campos existentes preservados. WhatsApp, site e responsável precisam de confirmação.';
+        status.textContent = (data.ativo === false
             ? `Dados preenchidos | CNPJ NAO ATIVO (${data.situacao || 'situacao desconhecida'})`
-            : `Dados preenchidos: ${razao}`;
+            : `${filled} campo(s) preenchido(s): ${razao}`) + notice;
         status.className = data.ativo === false
             ? 'text-xs text-red-700 font-bold'
             : 'text-xs text-green-700';
     } catch (e) {
+        if (!isCurrent()) return;
         status.textContent = 'Erro de conexao. Verifique sua internet e tente novamente.';
         status.className = 'text-xs text-red-700';
     }

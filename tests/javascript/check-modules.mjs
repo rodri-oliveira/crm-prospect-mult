@@ -49,3 +49,5 @@ selected.toggle('Lojas de carros');
 assert.ok(selected.selecionados.includes('Lojas de carros'));
 assert.ok(selected.selecionados.includes('Acessórios de informática'));
 console.log('Car-dealer segment available alongside the existing accessories selection.');
+
+await import('./check-cnpj.mjs');
