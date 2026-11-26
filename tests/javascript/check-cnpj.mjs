@@ -3,7 +3,7 @@ import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const fields = new Map();
-const ids = ['f_cnpj','cnpjStatus','f_nome','f_endereco','f_cidade','f_estado','f_telefone','f_whatsapp','f_email','f_site','f_responsavel'];
+const ids = ['f_cnpj','cnpjStatus','f_nome','f_endereco','f_cidade','f_estado','f_telefone','f_whatsapp','f_email','f_site','f_responsavel','cnpjPhoneReview','cnpjPhoneReviewText','cnpjPhoneApply'];
 const first = '11222333000181';
 const second = '11444777000161';
 const sample = {ok:true, cnpj:first, ativo:true, data:{nome_fantasia:'Loja Teste',razao_social:'Teste LTDA',endereco:'Rua A, 123',cep:'01234567',cidade:'São Paulo',estado:'SP',telefone:'5511999994321',email:'teste@example.com'}};
@@ -11,7 +11,10 @@ let respond;
 const context = vm.createContext({window:{},document:{getElementById:id=>fields.get(id)},
     Event:class {constructor(type){this.type=type;}}, fetch: (...args)=>respond(...args)});
 const module = new vm.SourceTextModule(readFileSync('static/js/modules/cnpj.js','utf8'),{context});
-await module.link(()=>{throw new Error('unexpected import');});
+await module.link((specifier)=>{
+    assert.equal(specifier, './phone-format.js');
+    return new vm.SourceTextModule(readFileSync('static/js/modules/phone-format.js','utf8'),{context});
+});
 await module.evaluate();
 function reset() {
     for(const id of ids) fields.set(id,{value:'',textContent:'',className:'',dispatchEvent(){}});
@@ -64,3 +67,22 @@ assert.equal(fields.get('f_nome').value,'Teste LTDA');
 assert.equal(fields.get('f_telefone').value,'');
 assert.match(fields.get('cnpjStatus').textContent,/BAIXADA/);
 console.log('CNPJ fill: no assumed WhatsApp, manual values preserved, stale responses ignored, API errors and partial/inactive data handled.');
+
+reset();
+respond=async()=>({ok:true,json:async()=>({...sample,data:{...sample.data,telefone:'2799743600'}})});
+await fill();
+assert.equal(fields.get('f_telefone').value,'(27) 9974-3600');
+assert.equal(fields.get('cnpjPhoneReview').hidden,false);
+assert.match(fields.get('cnpjPhoneReviewText').textContent,/99974-3600/);
+fields.get('cnpjPhoneApply').onclick();
+assert.equal(fields.get('f_telefone').value,'(27) 99974-3600');
+assert.equal(fields.get('f_whatsapp').value,'');
+assert.equal(fields.get('cnpjPhoneReview').hidden,true);
+reset();
+respond=async()=>({ok:true,json:async()=>({...sample,data:{...sample.data,telefone:'2799743600'}})});
+await fill();
+fields.get('f_telefone').value='(27) 3222-1234';
+fields.get('cnpjPhoneApply').onclick();
+assert.equal(fields.get('f_telefone').value,'(27) 3222-1234');
+assert.equal(fields.get('cnpjPhoneApply').hidden,true);
+console.log('Legacy mobile suggestion requires explicit application and cannot overwrite a changed phone.');

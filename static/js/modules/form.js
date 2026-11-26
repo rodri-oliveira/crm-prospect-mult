@@ -1,3 +1,4 @@
+import { formatPhoneBR } from './phone-format.js';
 /**
  * Módulo de formulário de Prospecção
  * Gerencia submit, modal de retorno e integração com Maps
@@ -144,24 +145,6 @@ function syncReturnFieldsVisibility(statusSelect) {
     }
 }
 
-function formatPhoneBR(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-
-    let digits = raw.replace(/\D/g, '');
-    if (!digits) return raw;
-
-    if (digits.startsWith('55') && (digits.length === 12 || digits.length === 13)) {
-        digits = digits.substring(2);
-    }
-
-    if (digits.length === 8) return `${digits.substring(0, 4)}-${digits.substring(4)}`;
-    if (digits.length === 9) return `${digits.substring(0, 5)}-${digits.substring(5)}`;
-    if (digits.length === 10) return `(${digits.substring(0, 2)}) ${digits.substring(2, 6)}-${digits.substring(6)}`;
-    if (digits.length === 11) return `(${digits.substring(0, 2)}) ${digits.substring(2, 7)}-${digits.substring(7)}`;
-
-    return raw;
-}
 
 function installPhoneFormatting(id) {
     const el = document.getElementById(id);
