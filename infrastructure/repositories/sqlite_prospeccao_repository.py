@@ -290,57 +290,10 @@ class SqliteProspeccaoRepository(ProspeccaoRepository):
         conn.close()
         return affected > 0
     def get_retornos_stats(self) -> dict:
-        """Retorna estatísticas detalhadas de agendamentos: hoje, atrasados e urgentes."""
-        from datetime import datetime, date, timedelta
-        agora = datetime.now()
-        hoje_date = date.today().isoformat()
-        uma_hora_depois = (agora + timedelta(hours=1)).strftime("%H:%M")
-        conn = get_db_connection(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        # 1. Atrasados (Data anterior a hoje)
-        c.execute(
-            """
-            SELECT COUNT(*) FROM prospeccao_temp
-            WHERE data_retorno < ?
-              AND status_prospeccao IN ('Pediu para retornar', 'Agendamento', 'Em negociação', 'Aguard. Lista Prod.', 'Não analisou ainda o material')
-              AND (arquivado = 0 OR arquivado IS NULL)
-        """,
-            (hoje_date,),
-        )
-        atrasados = c.fetchone()[0]
-        # 2. Hoje (Total para hoje)
-        c.execute(
-            """
-            SELECT COUNT(*) FROM prospeccao_temp
-            WHERE data_retorno = ?
-              AND status_prospeccao IN ('Pediu para retornar', 'Agendamento', 'Em negociação', 'Aguard. Lista Prod.', 'Não analisou ainda o material')
-              AND (arquivado = 0 OR arquivado IS NULL)
-        """,
-            (hoje_date,),
-        )
-        hoje = c.fetchone()[0]
-        # 3. Urgentes (Hoje, e o horário já passou ou falta < 1h)
-        # Nota: Se hora_retorno for nulo, consideramos urgente se for hoje
-        c.execute(
-            """
-            SELECT COUNT(*) FROM prospeccao_temp
-            WHERE data_retorno = ?
-              AND status_prospeccao IN ('Pediu para retornar', 'Agendamento', 'Em negociação', 'Aguard. Lista Prod.', 'Não analisou ainda o material')
-              AND (arquivado = 0 OR arquivado IS NULL)
-              AND (hora_retorno <= ? OR hora_retorno IS NULL)
-        """,
-            (hoje_date, uma_hora_depois),
-        )
-        urgentes = c.fetchone()[0]
-        conn.close()
+        from application.agendamentos.alerts import get_return_alerts
+        from infrastructure.repositories.sqlite_agendamentos_repository import SqliteAgendamentosRepository
+        return get_return_alerts(SqliteAgendamentosRepository())
 
-        return {
-            "hoje": hoje,
-            "atrasados": atrasados,
-            "urgentes": urgentes,
-            "total": hoje + atrasados
-        }
     def get_eventos(self, prospeccao_id: int) -> list[dict]:
         conn = get_db_connection(DB_PATH)
         conn.row_factory = sqlite3.Row

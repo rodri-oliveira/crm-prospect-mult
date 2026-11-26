@@ -1,6 +1,6 @@
 """Rotas web de Agendamentos."""
 from __future__ import annotations
-from datetime import date
+from application.agendamentos.alerts import business_today
 
 from interfaces.web.shared.navigation import local_redirect
 from flask import Flask, redirect, render_template, request, url_for
@@ -15,7 +15,7 @@ def agendamentos_view():
     data_filtro = request.args.get("data")
     mostrar_todos = request.args.get("todos") == "1"
 
-    hoje = date.today().isoformat()
+    hoje = business_today()
 
     result = list_agendamentos_with_repo(
         ListAgendamentosRequest(data=hoje, mostrar_todos=mostrar_todos),

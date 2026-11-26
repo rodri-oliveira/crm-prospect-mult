@@ -242,13 +242,9 @@ def api_retornos_stats():
     """API: Obter estatísticas de agendamento (hoje, atrasados, urgentes)."""
     try:
         stats = prospeccao_repository().get_retornos_stats()
-        view = agendamentos_repository().get_view_data(date.today().isoformat(), mostrar_todos=False)
-
-        # Badge lateral consolidado: prospeccao + leads.
-        stats["hoje"] = int(stats.get("hoje", 0)) + int(view.total_leads_hoje or 0)
-        stats["atrasados"] = int(stats.get("atrasados", 0)) + int(view.total_leads_atrasados or 0)
-        stats["total"] = int(stats.get("hoje", 0)) + int(stats.get("atrasados", 0))
-        return jsonify(stats)
+        response = jsonify(stats)
+        response.headers['Cache-Control'] = 'no-store'
+        return response
     except Exception as e:
         logger.error(f"Erro em api_retornos_stats: {e}", exc_info=True)
         return jsonify({"hoje": 0, "atrasados": 0, "urgentes": 0, "total": 0}), 500

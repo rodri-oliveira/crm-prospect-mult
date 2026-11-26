@@ -50,6 +50,18 @@
         .animate-pulse-red {
             animation: pulse-red 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
         }
+        #nav-agendamentos.agenda-atrasado, #nav-agendamentos-mobile.agenda-atrasado {
+            background: #fef2f2; color: #991b1b; border-left: 4px solid #dc2626;
+        }
+        #nav-agendamentos.agenda-urgente, #nav-agendamentos-mobile.agenda-urgente {
+            background: #fff7ed; color: #9a3412; border-left: 4px solid #f97316;
+        }
+        .agenda-badge { margin-left: auto; color: white; font-size: 11px; font-weight: 900;
+            padding: 2px 8px; border-radius: 9999px; flex-shrink: 0; }
+        .agenda-badge-red { background: #dc2626; }
+        .agenda-badge-amber { background: #b45309; }
+        .agenda-aviso { display: block; font-size: 11px; font-weight: 700; margin-top: 3px; }
+        @media (prefers-reduced-motion: reduce) { .animate-pulse-red { animation: none; } }
     </style>
 </head>
 <body class="bg-brand-50 text-gray-900 font-sans antialiased">
@@ -73,65 +85,35 @@
                         ('/relatorio', 'relatorio', 'Relatório Diário', 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z')
                     ] %}
                     {% for href, key, label, icon_path in links %}
-                    <a href="{{ href }}" class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors {{ 'font-semibold bg-brand-50 text-brand-700' if active_page == key else 'font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
+                    <a href="{{ '/agendamentos?todos=1' if key == 'agendamentos' and retornos_stats.mostrar_futuros else href }}" {% if key == 'agendamentos' %}id="nav-agendamentos" title="{{ retornos_stats.resumo or 'Agendamentos' }}"{% endif %} class="flex items-center px-3 py-2.5 text-sm rounded-lg transition-colors {{ 'font-semibold bg-brand-50 text-brand-700' if active_page == key else 'font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900' }} {% if key == 'agendamentos' %}{{ 'agenda-atrasado' if retornos_stats.atrasados > 0 else 'agenda-urgente' if retornos_stats.urgentes > 0 else '' }}{% endif %}">
                         <svg class="mr-3 flex-shrink-0 h-5 w-5 {{ 'text-brand-600' if active_page == key else 'text-gray-500' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}"/>
                         </svg>
-                        {{ label }}
-                        {% if key == 'agendamentos' and retornos_stats and retornos_stats.total > 0 %}
-                        <span id="badge-agendamentos"
-                              class="ml-auto text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm transition-all duration-500
-                                     {{ 'bg-red-600 animate-pulse-red' if (retornos_stats.atrasados > 0 or retornos_stats.urgentes > 0) else 'bg-yellow-500' }}">
-                            {{ retornos_stats.total }}
+                        <span class="flex-1 min-w-0">
+                            {{ label }}
+                            {% if key == 'agendamentos' %}
+                            <span id="aviso-agendamentos" class="agenda-aviso" role="status" aria-live="polite">{{ retornos_stats.resumo or '' }}</span>
+                            {% endif %}
                         </span>
+                        {% if key == 'agendamentos' %}
+                        <span id="badge-agendamentos" {% if not retornos_stats.total %}hidden{% endif %}
+                              class="agenda-badge {{ 'agenda-badge-red animate-pulse-red' if retornos_stats.atrasados > 0 else 'agenda-badge-amber' }}">{{ retornos_stats.total }}</span>
                         {% endif %}
                     </a>
                     {% endfor %}
                 </nav>
             </aside>
 
-            <!-- Script de Atualização Proativa -->
-            <script>
-                async function refreshStats() {
-                    try {
-                        const response = await fetch('/api/retornos/stats');
-                        const data = await response.json();
-                        if (data && data.total !== undefined) {
-                            const badge = document.getElementById('badge-agendamentos');
-                            if (badge) {
-                                badge.innerText = data.total;
-                                // Atualiza cores e animação
-                                if (data.atrasados > 0 || data.urgentes > 0) {
-                                    badge.classList.remove('bg-yellow-500');
-                                    badge.classList.add('bg-red-600', 'animate-pulse-red');
-                                } else if (data.total > 0) {
-                                    badge.classList.remove('bg-red-600', 'animate-pulse-red');
-                                    badge.classList.add('bg-yellow-500');
-                                } else {
-                                    badge.style.display = 'none';
-                                }
-                            } else if (data.total > 0) {
-                                // Se não tinha badge e agora tem total, recarrega para criar o elemento
-                                // ou poderíamos criar via JS aqui, mas o F5 é mais seguro para o layout
-                                if (window.location.pathname !== '/agendamentos') {
-                                    clearTimeout(refreshTimer);
-                                    window.location.reload();
-                                }
-                            }
-                        }
-                    } catch (e) { console.warn("Erro refresh stats", e); }
-                }
-                // Atualiza a cada 2 minutos
-                const refreshTimer = setInterval(refreshStats, 120000);
-                // Primeira execução breve
-                setTimeout(refreshStats, 5000);
-            </script>
-
             <!-- Área de Conteúdo -->
             <main class="flex-1 relative z-0 overflow-y-auto focus:outline-none flex flex-col bg-brand-50">
                 <!-- Mobile Header -->
                 <div class="md:hidden flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
                     <h1 class="text-xl font-bold text-gray-800">CRM <span class="text-brand-600">Multi</span></h1>
+                    <a id="nav-agendamentos-mobile" href="{{ '/agendamentos?todos=1' if retornos_stats.mostrar_futuros else '/agendamentos' }}" class="flex items-center gap-2 rounded px-2 py-1 {{ 'agenda-atrasado' if retornos_stats.atrasados > 0 else 'agenda-urgente' if retornos_stats.urgentes > 0 else '' }}" title="{{ retornos_stats.resumo or 'Agendamentos' }}">
+                        Agenda
+                        <span id="badge-agendamentos-mobile" {% if not retornos_stats.total %}hidden{% endif %} class="agenda-badge {{ 'agenda-badge-red animate-pulse-red' if retornos_stats.atrasados > 0 else 'agenda-badge-amber' }}">{{ retornos_stats.total }}</span>
+                        <span id="aviso-agendamentos-mobile" class="sr-only" role="status" aria-live="polite">{{ retornos_stats.resumo or '' }}</span>
+                    </a>
                     <button class="text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 p-1 rounded-md">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -146,5 +128,6 @@
             </main>
         </div>
     </div>
+<script src="{{ url_for('static', filename='js/agenda-alerts.js', v='20261126-1') }}" defer></script>
 </body>
 </html>
