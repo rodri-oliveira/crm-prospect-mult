@@ -39,8 +39,8 @@ def inject_globals():
             'retornos_stats': stats
         }
     except Exception as e:
-        logger.error(f"Erro ao injetar globais: {e}")
-        return {'retornos_stats': {'hoje': 0, 'atrasados': 0, 'urgentes': 0, 'total': 0}}
+        logger.error(f"Erro ao injetar globais: {e}", exc_info=True)
+        return {'retornos_stats': {'hoje': 0, 'atrasados': 0, 'urgentes': 0, 'total': 0, 'indisponivel': True}}
 
 
 # ==================== ERROR Handlers ====================

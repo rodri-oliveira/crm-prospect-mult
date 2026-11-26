@@ -74,6 +74,14 @@
                 <div class="h-16 flex items-center px-6 border-b border-gray-200">
                     <h1 class="text-2xl font-black text-gray-800 tracking-tight">CRM <span class="text-brand-600">Multi</span></h1>
                 </div>
+                <div id="sidebar-agenda-callout" {% if not retornos_stats.atrasados and not retornos_stats.urgentes and not retornos_stats.indisponivel %}hidden{% endif %}
+                     style="margin:16px 16px 0;padding:14px;border:2px solid {{ '#dc2626' if retornos_stats.atrasados else '#ea580c' }};border-radius:10px;background:{{ '#fef2f2' if retornos_stats.atrasados else '#fff7ed' }};color:{{ '#991b1b' if retornos_stats.atrasados else '#9a3412' }};">
+                    <a id="sidebar-agenda-callout-link" href="{{ '/agendamentos?todos=1' if retornos_stats.mostrar_futuros else '/agendamentos' }}" style="display:block;color:inherit;text-decoration:none;">
+                        <strong id="sidebar-agenda-callout-title" style="display:block;font-size:13px;">{{ '⚠ RETORNOS ATRASADOS' if retornos_stats.atrasados else '🔔 RETORNOS PRÓXIMOS' if retornos_stats.urgentes else '⚠ VERIFIQUE A AGENDA' }}</strong>
+                        <span id="sidebar-agenda-callout-text" role="status" aria-live="polite" style="display:block;font-size:12px;font-weight:700;margin-top:6px;">{{ retornos_stats.resumo or 'Não foi possível atualizar os avisos.' }}</span>
+                        <span style="display:block;font-size:12px;text-decoration:underline;margin-top:8px;">Abrir agendamentos →</span>
+                    </a>
+                </div>
                 <!-- Menu -->
                 <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto" hx-boost="true">
                     {% set links = [
@@ -128,6 +136,6 @@
             </main>
         </div>
     </div>
-<script src="{{ url_for('static', filename='js/agenda-alerts.js', v='20261126-1') }}" defer></script>
+<script src="{{ url_for('static', filename='js/agenda-alerts.js', v='20261126-sidebar-2') }}" defer></script>
 </body>
 </html>
